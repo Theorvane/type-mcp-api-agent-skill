@@ -2,7 +2,7 @@
 
 Deterministic CLI for local structured API-specification inspection.
 
-> **Current status:** machine-readable `metadata --json`, local OpenAPI 3.x / Swagger 2.0 JSON/YAML `inspect --file <path> --json`, and the closed versioned manifest schema are implemented. Manifest construction, remote intake, Swagger UI discovery, Markdown/HTML extraction, approval receipts, and project generation are planned—not available in this version.
+> **Current status:** machine-readable `metadata --json`, local OpenAPI 3.x / Swagger 2.0 JSON/YAML `inspect --file <path> --json`, the closed versioned manifest schema, and side-effect-free manifest validation/canonical-digest APIs are implemented. Manifest construction, remote intake, Swagger UI discovery, Markdown/HTML extraction, approval receipts, and project generation are planned—not available in this version.
 
 ## Product boundary
 

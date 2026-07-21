@@ -1,6 +1,6 @@
 # CLI product vision
 
-**Status:** `metadata --json`, the closed manifest-schema artifact, and local structured-spec `inspect --file <path> --json` are implemented.
+**Status:** `metadata --json`, the closed manifest-schema artifact, local structured-spec `inspect --file <path> --json`, and side-effect-free manifest validation/canonical-digest APIs are implemented.
 
 ## Future product target
 
@@ -26,7 +26,7 @@
 
 1. Metadata command and versioned schema publication — implemented.
 2. Safe local structured-spec inspection for OpenAPI 3.x / Swagger 2.0 JSON/YAML — implemented.
-3. Closed manifest validation and RFC 8785/JCS canonical-digest implementation — planned.
+3. Closed manifest validation and RFC 8785/JCS-compatible canonical-digest library APIs — implemented; source-to-manifest construction remains planned.
 4. Bounded URL intake and Swagger UI spec URL discovery — planned.
 5. Document evidence extraction plus approval challenge/receipt flow — planned.
 6. TypeMCP project generation and isolated fixture verification — planned.
