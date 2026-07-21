@@ -13,12 +13,16 @@ Deterministic CLI for local structured API-specification inspection.
 
 The CLI never creates GitHub repositories or persists credentials.
 
-## Implemented commands
+## Run from this workspace
+
+This package is currently `private` and has **no published or trusted npm release**. Run it only from this workspace until a reviewed release and compatibility-policy entry exist:
 
 ```bash
-npm install type-mcp-api-cli
-npx type-mcp-api-cli metadata --json
-npx type-mcp-api-cli inspect --file ./openapi.yaml --json
+cd packages/type-mcp-api-cli
+npm ci
+npm run build
+node dist/cli.js metadata --json
+node dist/cli.js inspect --file ./openapi.yaml --json
 ```
 
 `metadata --json` prints package/protocol/schema metadata and the supported command list. `inspect` reads a local structured spec only and prints a secret-free classification summary; it never prints the supplied file path or source text.

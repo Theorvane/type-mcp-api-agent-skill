@@ -32,6 +32,8 @@ class UnifiedWorkspaceTests(unittest.TestCase):
 
         self.assertIn("metadata --json", readme)
         self.assertIn("inspect --file <path> --json", readme)
+        self.assertNotIn("npm install type-mcp-api-cli", readme)
+        self.assertNotIn("npx type-mcp-api-cli", readme)
         self.assertNotIn("approval receipt, and project generation commands", readme)
 
     def test_docs_validator_skips_embedded_dependency_markdown(self) -> None:
