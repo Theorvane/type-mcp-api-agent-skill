@@ -67,6 +67,7 @@ def main() -> int:
             "unset, empty, wildcard, duplicate, method-only, malformed, or unknown entries grant nothing",
             "Contained generation and verification",
             "npm ci --ignore-scripts",
+            "actual checked-out/ref-to-publish branch",
         ),
         "docs/guides/cli-compatibility.md": (
             "no CLI release is supported yet",
@@ -95,7 +96,12 @@ def main() -> int:
     if not skill.startswith("---\n") or "\n---\n" not in skill[4:]:
         print("Skill must start with YAML frontmatter and a non-empty body")
         return 1
-    for required_phrase in ("name: api-to-typemcp", "type-mcp-api-cli", "manifest approval"):
+    for required_phrase in (
+        "name: api-to-typemcp",
+        "type-mcp-api-cli",
+        "manifest approval",
+        "actual checked-out/ref-to-publish branch",
+    ):
         if required_phrase not in skill:
             print(f"Skill missing required contract phrase: {required_phrase}")
             return 1

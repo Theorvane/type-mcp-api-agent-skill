@@ -110,7 +110,7 @@ Verify a denied write-policy operation sends no upstream request. Treat failures
 
 ### 6. Publish only with final confirmation
 
-Immediately before GitHub creation/push, ask for and record confirmation of owner/org, repository name, visibility, and source branch. Then create, commit, push, and read back the remote URL/default branch. Scan staged/tracked files for secrets before reporting success.
+Immediately before GitHub creation/push, ask for and record confirmation of owner/org, repository name, visibility, and source branch. Before staging, committing, or pushing, resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Only after this ref verification, create, commit, push that verified ref, and read back the remote URL/default branch. Scan staged/tracked files for secrets before reporting success.
 
 **Completion criterion:** the user-confirmed repository exists remotely and contains the verified generated project with no credential-bearing artifact.
 

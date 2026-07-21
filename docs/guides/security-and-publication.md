@@ -81,4 +81,4 @@ The CLI never creates or pushes output repositories. Immediately before the skil
 3. Visibility (`public` or `private`)
 4. Source branch to publish
 
-Create/push only after the confirmation. Scan staged/tracked files and remote content for credentials or private downloaded source artifacts before reporting success.
+Before staging, committing, or pushing, resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Create/push only after this ref verification. Scan staged/tracked files and remote content for credentials or private downloaded source artifacts before reporting success.
