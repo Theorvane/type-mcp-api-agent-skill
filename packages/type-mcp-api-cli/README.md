@@ -1,6 +1,6 @@
 # type-mcp-api-cli
 
-Deterministic CLI for turning approved API descriptions into standalone TypeMCP MCP projects.
+Deterministic CLI for local structured API-specification inspection.
 
 > **Current status:** machine-readable `metadata --json`, local OpenAPI 3.x / Swagger 2.0 JSON/YAML `inspect --file <path> --json`, and the closed versioned manifest schema are implemented. Manifest construction, remote intake, Swagger UI discovery, Markdown/HTML extraction, approval receipts, and project generation are planned—not available in this version.
 

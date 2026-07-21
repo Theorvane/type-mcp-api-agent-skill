@@ -16,6 +16,7 @@ class UnifiedWorkspaceTests(unittest.TestCase):
         package = json.loads((CLI / "package.json").read_text(encoding="utf-8"))
 
         self.assertEqual(package["name"], "type-mcp-api-cli")
+        self.assertEqual(package["description"], "Deterministic local structured-spec inspection CLI")
         self.assertEqual(package["bin"]["type-mcp-api-cli"], "./dist/cli.js")
         self.assertTrue((CLI / "src/cli.ts").is_file())
         self.assertTrue((CLI / "test/package-bin.mjs").is_file())

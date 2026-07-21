@@ -2,7 +2,7 @@
   "name": "type-mcp-api-cli",
   "version": "0.0.0",
   "private": true,
-  "description": "Deterministic API-to-TypeMCP manifest and project generation CLI",
+  "description": "Deterministic local structured-spec inspection CLI",
   "type": "module",
   "bin": {
     "type-mcp-api-cli": "./dist/cli.js"
