@@ -36,7 +36,7 @@ When root orchestration and package documents disagree, stop and reconcile the d
 
 ## Bootstrap implementation
 
-Only `metadata --json`, local structured-spec `inspect --file <path> --json`, and `schemas/api-manifest-1.schema.json` are implemented today. Do not claim manifest construction, remote inspection, document parsing, approval, or generation is implemented until an issue, test evidence, and documentation demonstrate it.
+Only `metadata --json`, local structured-spec `inspect --file <path> --json`, the closed `schemas/api-manifest-1.schema.json` artifact, and side-effect-free manifest v1 validation/canonical-digest library APIs are implemented today. Do not claim manifest construction, remote inspection, document parsing, approval, or generation is implemented until an issue, test evidence, and documentation demonstrate it.
 
 ## Workflow after bootstrap
 

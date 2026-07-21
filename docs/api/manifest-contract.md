@@ -1,6 +1,6 @@
 # API manifest, approval receipt, and CLI contract
 
-**Status:** Approved contract; CLI and skill implementation pending.
+**Status:** The closed v1 schema validator and canonical-digest primitives are implemented in the in-repository CLI package. Source-to-manifest construction, approval, generation, and skill invocation remain pending.
 
 The manifest is the CLI-to-skill review boundary. It is versioned, JSON-serializable, secret-free, schema-validated, and canonically hashed. All persisted/displayed source identifiers and evidence are sanitized under `docs/guides/security-and-publication.md`; original URLs, redirects, local paths, credentials, and raw private diagnostics are never manifest fields.
 
