@@ -8,7 +8,7 @@ Deterministic CLI for turning approved API descriptions into standalone TypeMCP 
 
 | Product | Responsibility |
 | --- | --- |
-| `type-mcp-api-cli` (`packages/type-mcp-api-cli/`) | Deterministic local intake, normalization, validation, approval receipt, and project generation commands. |
+| `type-mcp-api-cli` (`packages/type-mcp-api-cli/`) | Implemented local JSON/YAML structured-spec classification through `metadata` and `inspect`; manifest/approval/project-generation commands remain planned. |
 | `api-to-typemcp` (`../../skills/api-to-typemcp/`) | Optional Hermes skill that resolves a trusted CLI release, presents manifests for approval, verifies generated output, and asks before GitHub publication. |
 
 The CLI never creates GitHub repositories or persists credentials.

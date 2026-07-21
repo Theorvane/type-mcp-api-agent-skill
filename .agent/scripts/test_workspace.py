@@ -20,6 +20,13 @@ class UnifiedWorkspaceTests(unittest.TestCase):
         self.assertTrue((CLI / "src/cli.ts").is_file())
         self.assertTrue((CLI / "test/package-bin.mjs").is_file())
 
+    def test_cli_readme_advertises_only_implemented_commands(self) -> None:
+        readme = (CLI / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("metadata --json", readme)
+        self.assertIn("inspect --file <path> --json", readme)
+        self.assertNotIn("approval receipt, and project generation commands", readme)
+
     def test_docs_validator_skips_embedded_dependency_markdown(self) -> None:
         validator = (ROOT / ".agent/scripts/validate_docs.py").read_text(encoding="utf-8")
 
