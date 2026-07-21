@@ -15,6 +15,7 @@ PUBLICATION_CONFIRMATION = (
     "owner/org, repository name, visibility, and source branch"
 )
 REF_VERIFICATION = "actual checked-out/ref-to-publish branch"
+REF_EQUALITY_STOP = "stop unless it exactly equals the recorded source branch"
 
 
 class PublicationContractValidatorTests(unittest.TestCase):
@@ -53,6 +54,15 @@ class PublicationContractValidatorTests(unittest.TestCase):
     def test_skill_rejects_missing_ref_verification(self) -> None:
         self.assert_validator_fails_after_removal(
             "skills/api-to-typemcp/SKILL.md", REF_VERIFICATION
+        )
+    def test_security_guide_rejects_missing_ref_equality_stop(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "docs/guides/security-and-publication.md", REF_EQUALITY_STOP
+        )
+
+    def test_skill_rejects_missing_ref_equality_stop(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "skills/api-to-typemcp/SKILL.md", REF_EQUALITY_STOP
         )
 
 

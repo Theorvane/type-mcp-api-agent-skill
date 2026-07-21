@@ -95,6 +95,7 @@ def main() -> int:
     publication_contracts = (
         "owner/org, repository name, visibility, and source branch",
         "actual checked-out/ref-to-publish branch",
+        "stop unless it exactly equals the recorded source branch",
         "before staging, committing, or pushing",
     )
     for relative_path in (

@@ -62,7 +62,7 @@ Initial independent bootstrap review identified these important gaps, all addres
 8. Generation verification is contained in a fresh temporary workspace, begins with `npm ci --ignore-scripts`, uses local mocks by default, and requires separate approval for authenticated/live smoke tests.
 9. Final independent review found four more enforceability gaps: mutable approval fields, underspecified canonicalization, undefined protected-write enablement, and inconsistent source-branch publication confirmation.
 10. Resolution: approval is now a separate CLI-issued, MAC-validated, single-use receipt; digesting is closed-schema RFC 8785/JCS with exact payload/exclusions; writes use exact-ID fail-closed allowlisting before request construction; and all canonical documents require recorded/ref-verified source-branch confirmation.
-11. Final focused review found that the validator did not prove both publication contracts in both skill and guide. Resolution: added four temporary-copy regression tests that remove each document's confirmation/ref clause, plus per-document validator assertions for confirmation fields, ref equality, and pre-stage timing.
+11. Final focused review found that the validator did not prove both publication contracts in both skill and guide. Resolution: added six temporary-copy regression tests that remove each document's confirmation/ref clause, including the exact-equality stop condition, plus per-document validator assertions for confirmation fields, ref equality, and pre-stage timing.
 
 ## Verification
 
