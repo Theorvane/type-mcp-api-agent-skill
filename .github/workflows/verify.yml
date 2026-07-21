@@ -18,6 +18,7 @@ jobs:
           python-version: "3.12"
       - name: Validate repository documentation and harness
         run: |
+          python3 .agent/scripts/test_validate_docs.py
           python3 .agent/scripts/validate_docs.py
-          python3 -m py_compile .agent/scripts/validate_docs.py
+          python3 -m py_compile .agent/scripts/validate_docs.py .agent/scripts/test_validate_docs.py
           git diff --check

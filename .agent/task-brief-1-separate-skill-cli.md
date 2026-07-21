@@ -35,7 +35,7 @@ Make the repository a reusable Hermes skill that invokes an independently instal
 
 - Source input: CLI receives untrusted API specs/docs and emits a review manifest.
 - Secrets: only environment-variable references cross the skill/CLI boundary.
-- Approval: document-derived generation needs `approval.state: approved` bound to the current canonical digest, manifest version, and protocol version.
+- Approval: document-derived generation needs a CLI-issued, MAC-validated, single-use receipt bound to the current canonical digest, manifest version, and protocol version.
 - Policy: `GET`/`HEAD`/`OPTIONS` derive `read`; common mutations derive `protected-write`; unknown methods derive `deny` before upstream dispatch.
 - Side effects: manifest approval precedes generation; final confirmation precedes GitHub publication.
 - Compatibility: skill pins/validates a compatible released CLI version and verifies CLI provenance before invocation.
@@ -63,6 +63,7 @@ Initial independent bootstrap review identified these important gaps, all addres
 9. Final independent review found four more enforceability gaps: mutable approval fields, underspecified canonicalization, undefined protected-write enablement, and inconsistent source-branch publication confirmation.
 10. Resolution: approval is now a separate CLI-issued, MAC-validated, single-use receipt; digesting is closed-schema RFC 8785/JCS with exact payload/exclusions; writes use exact-ID fail-closed allowlisting before request construction; and all canonical documents require recorded/ref-verified source-branch confirmation.
 11. Final focused review found that the validator did not prove both publication contracts in both skill and guide. Resolution: added six temporary-copy regression tests that remove each document's confirmation/ref clause, including the exact-equality stop condition, plus per-document validator assertions for confirmation fields, ref equality, and pre-stage timing.
+12. Final review verified the six temporary-copy mutation tests but found CI did not run them. Resolution: the `docs-and-harness` GitHub Actions workflow now runs the mutation suite before the validator and compiles both scripts.
 
 ## Verification
 
