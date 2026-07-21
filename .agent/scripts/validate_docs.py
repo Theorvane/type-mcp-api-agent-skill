@@ -16,8 +16,10 @@ REQUIRED_FILES = (
     "docs/architecture/overview.md",
     "docs/api/manifest-contract.md",
     "docs/guides/security-and-publication.md",
+    "docs/guides/cli-compatibility.md",
     "docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md",
     "docs/planning/README.md",
+    "skills/api-to-typemcp/SKILL.md",
     ".agent/templates/task-brief.md",
     ".agent/templates/review-report.md",
     ".agent/checklists/pre-commit.md",
@@ -47,8 +49,87 @@ def main() -> int:
         print("Missing local Markdown links:", *missing_links, sep="\n- ")
         return 1
 
+    contract_files = {
+        "docs/api/manifest-contract.md": (
+            "CLI-issued approval receipt",
+            "RFC 8785 JSON Canonicalization Scheme (JCS)",
+            "closed (`additionalProperties: false`)",
+            "separate, CLI-issued approval receipt",
+            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
+            "A copied/edited manifest cannot forge a receipt",
+        ),
+        "docs/guides/security-and-publication.md": (
+            "before upstream request construction or dispatch",
+            "A source parser, operation name, or documentation prose cannot classify a mutating method as `read`",
+            "canonical `manifestDigest`",
+            "MAC-validated receipt",
+            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
+            "unset, empty, wildcard, duplicate, method-only, malformed, or unknown entries grant nothing",
+            "Contained generation and verification",
+            "npm ci --ignore-scripts",
+            "actual checked-out/ref-to-publish branch",
+        ),
+        "docs/guides/cli-compatibility.md": (
+            "no CLI release is supported yet",
+            "Trusted resolution flow",
+            "npm registry dist integrity",
+            "PATH` lookup alone is prohibited",
+        ),
+        "docs/architecture/overview.md": (
+            "CLI-issued, unexpired, single-use MAC receipt",
+            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
+            "owner/org, name, visibility, and source-branch confirmation",
+        ),
+        "README.md": (
+            "skill repository",
+            "Neither the skill runtime nor the companion CLI implementation is published from this repository yet",
+        ),
+    }
+    for relative_path, required_phrases in contract_files.items():
+        content = (ROOT / relative_path).read_text(encoding="utf-8")
+        for required_phrase in required_phrases:
+            if required_phrase not in content:
+                print(f"{relative_path} missing required safety contract phrase: {required_phrase}")
+                return 1
+
+    publication_contracts = (
+        "owner/org, repository name, visibility, and source branch",
+        "actual checked-out/ref-to-publish branch",
+        "stop unless it exactly equals the recorded source branch",
+        "before staging, committing, or pushing",
+    )
+    for relative_path in (
+        "docs/guides/security-and-publication.md",
+        "skills/api-to-typemcp/SKILL.md",
+    ):
+        content = (ROOT / relative_path).read_text(encoding="utf-8").lower()
+        for required_phrase in publication_contracts:
+            if required_phrase not in content:
+                print(f"{relative_path} missing required publication contract: {required_phrase}")
+                return 1
+
+    skill = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
+    if not skill.startswith("---\n") or "\n---\n" not in skill[4:]:
+        print("Skill must start with YAML frontmatter and a non-empty body")
+        return 1
+    for required_phrase in (
+        "name: api-to-typemcp",
+        "type-mcp-api-cli",
+        "manifest approval",
+        "actual checked-out/ref-to-publish branch",
+    ):
+        if required_phrase not in skill:
+            print(f"Skill missing required contract phrase: {required_phrase}")
+            return 1
+
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    for required_phrase in ("Manifest before generation", "npm dependency, not source copying", "No direct main changes"):
+    for required_phrase in (
+        "Manifest before generation",
+        "CLI boundary, not generator implementation",
+        "Trusted CLI resolution",
+        "Contained execution",
+        "No direct main changes",
+    ):
         if required_phrase not in agents:
             print(f"AGENTS.md missing required operating rule: {required_phrase}")
             return 1

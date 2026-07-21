@@ -1,34 +1,38 @@
 # type-mcp-api-agent
 
-A Hermes skill and tested generator harness for creating standalone TypeMCP MCP server repositories from an API source.
+A Hermes skill repository for turning supplied API sources into standalone TypeMCP MCP repositories **by invoking the separate `type-mcp-api-cli` CLI**.
 
 ## Status
 
-The repository currently contains the approved product specification and engineering harness. The generator implementation starts only from the approved design and issue plan.
+This repository currently contains the approved skill contract, product specification, and engineering harness. Neither the skill runtime nor the companion CLI implementation is published from this repository yet.
 
-## Intended workflow
+## Choose a usage mode
 
-1. Provide an OpenAPI/Swagger JSON or YAML URL/file, a Swagger UI URL, or a Markdown/HTML API documentation URL.
-2. Discover and normalize API operations into a reviewable manifest.
-3. For document-derived operations, present the manifest and wait for explicit approval.
-4. Generate a standalone TypeScript MCP project that installs `type-mcp` from npm.
-5. Verify the generated project, then create and push its own GitHub repository after confirming the target name, owner, and visibility.
+| Need | Use |
+| --- | --- |
+| Deterministic intake, manifest creation, or project generation in a terminal/CI pipeline | `type-mcp-api-cli` (separate CLI repository/package; planned) |
+| Guided API-source discovery, manifest approval, safety checks, verification, and confirmed GitHub publication | this repository's `api-to-typemcp` Hermes skill |
 
-## Product boundaries
+The skill is an orchestrator. It validates and invokes a compatible released CLI; it does not reimplement parsing, normalization, or source rendering.
 
-- Every discovered endpoint can become a tool; execution is controlled by generated runtime policy.
-- API secrets are supplied only at runtime through environment variables and approved header/query mappings.
-- OAuth/OIDC token acquisition, credential persistence, endpoint guessing from a bare base URL, and unapproved publishing are out of scope for the initial release.
+## Intended skill workflow
+
+1. Accept an OpenAPI/Swagger JSON or YAML URL/file, Swagger UI URL, or Markdown/HTML API documentation URL.
+2. Resolve a verified CLI executable and create a secret-free review manifest.
+3. For Markdown/HTML-derived operations, require explicit user confirmation plus a CLI-issued receipt bound to the canonical digest.
+4. Invoke the CLI to generate a standalone TypeScript MCP project whose dependencies include `type-mcp` from npm.
+5. Verify the generated project and only then, after final owner/name/visibility/**source-branch** confirmation and ref verification, create and push its own GitHub repository.
 
 ## Canonical documentation
 
 - Product scope: `docs/product/`
-- Architecture and manifest contract: `docs/architecture/`, `docs/api/`
-- Safety and approval workflow: `docs/guides/`
+- Architecture and cross-repository compatibility: `docs/architecture/`
+- Manifest and generated API contracts: `docs/api/`
+- Safety, auth, execution containment, and publication guides: `docs/guides/`
+- CLI release compatibility source of truth: `docs/guides/cli-compatibility.md`
 - Executable task plans: `docs/planning/`
 - Approved design history: `docs/superpowers/specs/`
-- Agent workflow and quality gates: `AGENTS.md`, `.agent/`
+- Hermes operating rules and quality gates: `AGENTS.md`, `.agent/`
+- Skill instructions: `skills/api-to-typemcp/SKILL.md`
 
-## Development status
-
-Read `AGENTS.md` before changing this repository. Do not represent planned generator behavior as implemented behavior.
+Read `AGENTS.md` before changing this repository. Do not represent planned CLI or generation behavior as implemented behavior.
