@@ -20,6 +20,12 @@ class UnifiedWorkspaceTests(unittest.TestCase):
         self.assertTrue((CLI / "src/cli.ts").is_file())
         self.assertTrue((CLI / "test/package-bin.mjs").is_file())
 
+    def test_cli_product_vision_labels_unimplemented_capabilities_as_future(self) -> None:
+        vision = (CLI / "docs/product/vision.md").read_text(encoding="utf-8")
+
+        self.assertIn("Future product target", vision)
+        self.assertNotIn("It accepts supported API inputs, produces a reviewable secret-free manifest", vision)
+
     def test_cli_readme_advertises_only_implemented_commands(self) -> None:
         readme = (CLI / "README.md").read_text(encoding="utf-8")
 
