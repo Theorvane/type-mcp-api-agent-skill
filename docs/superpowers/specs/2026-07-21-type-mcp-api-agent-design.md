@@ -22,7 +22,7 @@ Provide two selectable products for turning supplied API specifications or docum
 - Markdown/HTML extraction yields an evidence-backed manifest and requires explicit user approval before CLI generation.
 - Every approved endpoint is generated as a tool. Runtime policy, not endpoint omission, controls execution. Mutating calls are protected by default.
 - Authentication supports environment variables and explicit header/query mappings. OAuth/OIDC automation is deferred.
-- The CLI does not publish output. The skill publishes a verified generated project to a new GitHub repository only after final owner/name/visibility confirmation.
+- The CLI does not publish output. The skill publishes a verified generated project to a new GitHub repository only after final owner/name/visibility/source-branch confirmation and ref verification.
 
 ## Repository shape
 
@@ -72,6 +72,6 @@ OAuth/OIDC acquisition, credential persistence, base-URL endpoint scanning, Grap
 
 1. Implement CLI metadata/discovery and compatibility checks with fixture binaries.
 2. Implement staged inspect/manifest/generate orchestration and manifest display.
-3. Implement manifest-approval state and safe artifact recording.
+3. Implement CLI-issued approval challenge/receipt handling and safe artifact recording.
 4. Implement generated-project independent verification.
 5. Implement final-confirmation GitHub publication orchestration.

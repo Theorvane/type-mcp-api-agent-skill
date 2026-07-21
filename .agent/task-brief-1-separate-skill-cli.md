@@ -60,6 +60,8 @@ Initial independent bootstrap review identified these important gaps, all addres
 6. Trusted CLI resolution requires an isolated registry install, integrity verification, absolute binary path checks, and scrubbed execution; metadata alone is not provenance.
 7. Source/evidence/diagnostic URLs and paths must be sanitized before persistence, hashing, display, or approval.
 8. Generation verification is contained in a fresh temporary workspace, begins with `npm ci --ignore-scripts`, uses local mocks by default, and requires separate approval for authenticated/live smoke tests.
+9. Final independent review found four more enforceability gaps: mutable approval fields, underspecified canonicalization, undefined protected-write enablement, and inconsistent source-branch publication confirmation.
+10. Resolution: approval is now a separate CLI-issued, MAC-validated, single-use receipt; digesting is closed-schema RFC 8785/JCS with exact payload/exclusions; writes use exact-ID fail-closed allowlisting before request construction; and all canonical documents require recorded/ref-verified source-branch confirmation.
 
 ## Verification
 

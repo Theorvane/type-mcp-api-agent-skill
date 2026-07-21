@@ -50,14 +50,14 @@ Every approved operation becomes a tool. Policy is derived and enforced as speci
 | Method | Default mode | Runtime behavior |
 | --- | --- | --- |
 | `GET`, `HEAD`, `OPTIONS` | `read` | allowed unless an explicit policy denies it |
-| `POST`, `PUT`, `PATCH`, `DELETE` | `protected-write` | generated but blocked until deliberate runtime configuration permits it |
+| `POST`, `PUT`, `PATCH`, `DELETE` | `protected-write` | generated but denied unless exact operation ID is in `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` |
 | any other or unknown method | `deny` | safe MCP error; no upstream request |
 
-A source parser, operation name, or documentation prose cannot classify a mutating method as `read`. An override requires a visible manifest edit with `origin: approved-override`, a reason, and the normal manifest-approval binding when document-derived. A denied operation sends no upstream request.
+A source parser, operation name, or documentation prose cannot classify a mutating method as `read`. The sole protected-write grant is a parsed `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` comma-separated list of exact stable operation IDs: unset, empty, wildcard, duplicate, method-only, malformed, or unknown entries grant nothing. The runtime evaluates it before URL/header/body/authentication construction. An override requires a visible manifest edit with `origin: approved-override`, a reason, and the normal receipt flow when document-derived. A denied operation sends no upstream request.
 
 ## Document-derived manifest approval
 
-The skill displays the complete CLI candidate manifest including sanitized source evidence, confidence, canonical `manifestDigest`, CLI protocol version, and approval state. For a document-derived manifest, it waits for explicit user confirmation of that exact digest before recording the required `approval` object. The CLI rejects stale or unbound approval. The skill does not invoke CLI source generation, output dependency install, upstream smoke test, GitHub creation, or push until approval is valid.
+The skill displays the complete CLI candidate manifest including sanitized source evidence, confidence, JCS-recomputed canonical `manifestDigest`, CLI protocol version, and approval challenge. For a document-derived manifest, it waits for explicit user confirmation of that exact digest and challenge, then invokes CLI `approve` to obtain a separate MAC-validated receipt. The CLI rejects missing, stale, used, or unbound receipts. The skill does not invoke CLI source generation, output dependency install, upstream smoke test, GitHub creation, or push until the receipt is valid.
 
 ## Contained generation and verification
 

@@ -67,23 +67,24 @@ No CLI release is currently supported. When a release is enabled, the skill fail
 1. User provides a source URL/file and optionally an explicit CLI version/path.
 2. Skill resolves a compatible CLI executable from an approved source.
 3. CLI retrieves/parses bounded input and records secret-free provenance.
-4. CLI normalizes operations into the manifest contract, including canonical digest, source kind, approval state, and derived policy.
-5. Skill displays the manifest and records explicit approval bound to the exact digest for document-derived candidates.
-6. CLI rejects stale/unbound document approval and renders a standalone TypeScript MCP project with `type-mcp` from npm only when eligible.
+4. CLI normalizes operations into the manifest contract, validates its closed schema, and emits an RFC 8785/JCS canonical digest plus a challenge when document-derived.
+5. Skill recomputes/displays the digest and, after explicit user confirmation, invokes CLI `approve` to obtain a receipt bound to that challenge.
+6. CLI validates the separate receipt (MAC, challenge, expiry, digest, manifest/protocol versions), then renders a standalone TypeScript MCP project with `type-mcp` from npm.
 7. Skill runs generated-project lint/typecheck/test/build and an official-transport smoke test.
-8. Only after a final publication confirmation does the skill create and push the output repository.
+8. Only after a final recorded publication confirmation of owner/org, name, visibility, and source branch does the skill create and push the output repository.
 
 ## Runtime policy and publication boundaries
 
 Generation does not omit approved endpoints. Generated policy controls execution by operation ID and HTTP method; mutating operations are protected by default. The policy decision occurs before any upstream request.
 
-GitHub creation/push is outside CLI behavior and only runs in the skill after final confirmation of owner, repository name, and visibility.
+GitHub creation/push is outside CLI behavior and only runs in the skill after final recorded confirmation of GitHub owner/organization, repository name, visibility, **and source branch**. The skill must verify the checked-out/ref-to-publish branch exactly matches that recorded branch before staging or pushing.
 
 ## Approval and policy invariants
 
-- A document-derived manifest is generation-eligible only when its explicit approval record binds the current canonical digest, manifest version, and CLI protocol version.
-- `GET`, `HEAD`, and `OPTIONS` derive `read`; `POST`, `PUT`, `PATCH`, and `DELETE` derive `protected-write`; unknown methods derive `deny`.
-- An override is a user-visible, reasoned manifest edit, never a parser inference, and policy is evaluated before upstream request construction.
+- A document-derived manifest is generation-eligible only with a CLI-issued, unexpired, single-use MAC receipt bound to its current RFC 8785/JCS canonical digest, manifest version, and CLI protocol version.
+- `GET`, `HEAD`, and `OPTIONS` derive `read`; `POST`, `PUT`, `PATCH`, and `DELETE` derive `protected-write`; unknown methods derive `deny`. `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` grants protected writes only by exact operation ID.
+- An override is a user-visible, reasoned manifest edit, never a parser inference, and policy is evaluated before upstream URL/header/body/auth construction or dispatch.
+- Publication requires an explicit recorded owner/org, name, visibility, and source-branch confirmation; the branch must be rechecked immediately before push.
 
 ## Invariants
 

@@ -51,17 +51,20 @@ def main() -> int:
 
     contract_files = {
         "docs/api/manifest-contract.md": (
-            "Canonical digest and approval object",
-            "document-derived manifest begins as `pending`",
-            "CLI `generate` stage rejects every document-derived manifest",
-            "Normative execution-policy derivation",
-            "Any other/unknown method",
+            "CLI-issued approval receipt",
+            "RFC 8785 JSON Canonicalization Scheme (JCS)",
+            "closed (`additionalProperties: false`)",
+            "separate, CLI-issued approval receipt",
+            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
+            "A copied/edited manifest cannot forge a receipt",
         ),
         "docs/guides/security-and-publication.md": (
             "before upstream request construction or dispatch",
             "A source parser, operation name, or documentation prose cannot classify a mutating method as `read`",
             "canonical `manifestDigest`",
-            "Secret-safe provenance and evidence",
+            "MAC-validated receipt",
+            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
+            "unset, empty, wildcard, duplicate, method-only, malformed, or unknown entries grant nothing",
             "Contained generation and verification",
             "npm ci --ignore-scripts",
         ),
@@ -72,8 +75,9 @@ def main() -> int:
             "PATH` lookup alone is prohibited",
         ),
         "docs/architecture/overview.md": (
-            "approval record binds the current canonical digest",
-            "unknown methods derive `deny`",
+            "CLI-issued, unexpired, single-use MAC receipt",
+            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
+            "owner/org, name, visibility, and source-branch confirmation",
         ),
         "README.md": (
             "skill repository",

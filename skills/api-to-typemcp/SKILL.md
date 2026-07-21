@@ -55,19 +55,21 @@ For Markdown/HTML documents, manifest approval is mandatory. Do not proceed from
 
 1. Invoke the CLI inspect stage on the supplied source.
 2. Invoke the manifest stage and receive a secret-free, versioned manifest plus safe diagnostics.
-3. Verify the manifest has source kind, content hash, operations, auth mapping names, confidence, evidence, warnings, a canonical `manifestDigest`, and a valid approval object.
-4. Present the operation table, derived policy, approval state, and warnings to the user.
+3. Verify the manifest has source kind, content hash, operations, auth mapping names, confidence, evidence, warnings, a JCS-recomputable canonical `manifestDigest`, and a valid approval requirement/challenge.
+4. Independently recompute the digest from the closed versioned schema and RFC 8785 payload; stop on mismatch.
+5. Present the operation table, derived policy, challenge/receipt requirement, and warnings to the user.
 
-**Completion criterion:** there is one complete manifest artifact whose canonical digest, approval state, CLI version, and schema/protocol versions are known.
+**Completion criterion:** there is one schema-valid manifest whose JCS-recomputed canonical digest, approval challenge requirement, CLI version, and schema/protocol versions are known.
 
 ### 3. Apply approval and policy gates
 
-1. If the manifest is document-derived, ask for explicit approval of its displayed canonical `manifestDigest`.
-2. Record `approval.state: approved` only after the user confirms that exact digest; never rely on operation status alone.
-3. Let the user remove operations or adjust tool names, auth mapping names, and policy before approval.
-4. Derive `GET`/`HEAD`/`OPTIONS` as `read`; `POST`/`PUT`/`PATCH`/`DELETE` as `protected-write`; and unknown methods as `deny`. A parser may not change that mapping.
-5. Permit a policy override only as a visible, reasoned `approved-override` manifest edit; then recompute digest and repeat approval if document-derived.
-6. If the manifest changes, invalidate approval and repeat review.
+1. If the manifest is document-derived, display its exact canonical `manifestDigest` and explicit `challengeId`, then request user confirmation.
+2. After confirmation, invoke CLI `approve` in the isolated state directory. Retain the CLI-issued receipt separately; never edit the manifest to simulate approval.
+3. Provide the receipt to `generate`; require successful MAC/challenge/expiry/digest/version/protocol verification. A receipt is single-use.
+4. Let the user remove operations or adjust tool names, auth mapping names, and policy before approval.
+5. Derive `GET`/`HEAD`/`OPTIONS` as `read`; `POST`/`PUT`/`PATCH`/`DELETE` as `protected-write`; and unknown methods as `deny`. A parser may not change that mapping.
+6. Permit a policy override only as a visible, reasoned `approved-override` manifest edit; then recompute digest and obtain a new receipt if document-derived. Never override unknown methods from `deny`.
+7. If the manifest changes or receipt expires/is consumed, invalidate approval and repeat review.
 
 **Completion criterion:** every operation to generate is explicitly approved and write behavior is policy-gated.
 
@@ -131,8 +133,8 @@ Immediately before GitHub creation/push, ask for and record confirmation of owne
 
 - [ ] CLI provenance/version and manifest schema/protocol compatibility verified
 - [ ] Manifest is secret-free and evidence-backed
-- [ ] Document-derived approval record binds the current manifest digest/version/protocol
-- [ ] Every approved operation generated; normative mutation/unknown-method policy is enforced before dispatch
+- [ ] Document-derived manifest has a CLI-issued, unexpired, single-use receipt bound to the current JCS digest/version/protocol
+- [ ] Every approved operation generated; `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` exact-ID gate and deny-before-request-construction behavior are verified
 - [ ] Generated project installs npm `type-mcp` and passes applicable checks
 - [ ] Official-transport MCP smoke test passes
 - [ ] GitHub owner/name/visibility/branch confirmed immediately before publication

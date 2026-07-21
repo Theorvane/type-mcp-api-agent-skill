@@ -28,11 +28,11 @@ When sources conflict, stop and update the lower-priority source before implemen
 
 ## Non-negotiable rules
 
-1. **Manifest before generation.** Normalize every input through the CLI into the manifest contract. Markdown/HTML-derived operations require explicit user approval before source generation.
+1. **Manifest before generation.** Normalize every input through the CLI into the manifest contract. Document-derived operations require a CLI-issued receipt bound to the exact RFC 8785/JCS digest before source generation.
 2. **CLI boundary, not generator implementation.** The skill invokes a compatible released `type-mcp-api-cli` executable. Do not add OpenAPI parsing, Swagger UI scraping, document extraction, manifest rendering, or TypeScript source-template logic to this repository.
 3. **Trusted CLI resolution.** Follow `docs/guides/cli-compatibility.md` exactly. No CLI release is supported until that policy lists its exact version, protocol/schema, and npm integrity. Never execute a `PATH` binary, self-reported metadata-only artifact, or user-local binary without the policy's explicit digest/path approval flow.
 4. **npm dependency, not source copying.** The CLI-generated `package.json` installs a verified `type-mcp` npm version. The skill verifies package exports and a generated-server smoke test only inside the contained verification boundary.
-5. **All tools, controlled execution.** Generate every approved endpoint tool. Runtime policy controls execution by operation/method; mutating calls are protected by default and never silently execute because a documentation parser guessed them.
+5. **All tools, controlled execution.** Generate every approved endpoint tool. Generated runtime permits `protected-write` operations only through exact IDs in `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS`; unset/malformed/wildcard/unknown entries fail closed before request construction.
 6. **Secrets never enter artifacts.** Sanitize source descriptors, redirect targets, evidence URLs/snippets, diagnostics, and local paths before displaying, hashing, or persisting them. Do not write tokens to source, manifests, lockfiles, examples, logs, commits, or GitHub issues. Only environment-variable references and mapping names are allowed.
 7. **No unbounded discovery.** Swagger UI discovery may inspect its page/config and known spec URLs. Markdown/HTML extraction uses supplied documents only. A bare base URL is not endpoint enumeration permission.
 8. **Contained execution.** CLI and generated-project verification run only in a fresh temporary workspace with a scrubbed environment, controlled working directory, and explicit network/upstream policy. Inspect the lockfile and run `npm ci --ignore-scripts` before any project lifecycle script. A live authenticated smoke test needs separate explicit user approval.
@@ -57,8 +57,8 @@ The skill invokes the CLI in staged commands; exact flags are defined by the pub
 
 1. **Inspect:** validate input type and source provenance without generating code.
 2. **Manifest:** request a secret-free normalized manifest and diagnostics.
-3. **Generate:** only after required approval, render a project into a declared empty output directory.
-4. **Verify:** ask the CLI or project harness for deterministic generation metadata; the skill independently runs the generated project's documented quality gates.
+3. **Generate:** only after required CLI-issued receipt validation, render a project into a declared empty output directory.
+4. **Verify:** ask the CLI or project harness for deterministic generation metadata; the skill independently runs contained generated-project quality gates.
 
 The skill must test against a controlled fixture CLI that emits known success, incompatibility, malformed-manifest, and unsafe-side-effect cases. This keeps the orchestration contract testable before the real CLI exists.
 
@@ -70,11 +70,11 @@ Supported sources through the CLI:
 - Swagger UI URL, by discovering an underlying spec URL
 - Markdown/HTML API documentation URL, extracted into evidence-backed candidate operations
 
-For Markdown/HTML, show the CLI manifest with operation, method, URL, inputs, authentication hints, source evidence, and confidence. Do not invoke CLI generation, install dependencies, call the API, create a GitHub repository, or push until the user approves that manifest.
+For document-derived sources, show the CLI manifest with operation, method, sanitized URL evidence, inputs, authentication hints, confidence, canonical digest, and approval challenge. Do not invoke CLI approval/generation, install dependencies, call the API, create a GitHub repository, or push until the user has confirmed the digest and the CLI issues a valid receipt.
 
 ## Generated-project publication
 
-Creating/pushing a generated repository is an external side effect. Immediately before that step, confirm its owner/org, name, visibility, and intended source branch with the user. Never publish credentials or a downloaded private specification.
+Creating/pushing a generated repository is an external side effect. Immediately before that step, record user confirmation of owner/org, name, visibility, and source branch; then verify the actual ref matches the recorded branch. Never publish credentials or a downloaded private specification.
 
 ## Verification baseline
 

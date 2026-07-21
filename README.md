@@ -19,9 +19,9 @@ The skill is an orchestrator. It validates and invokes a compatible released CLI
 
 1. Accept an OpenAPI/Swagger JSON or YAML URL/file, Swagger UI URL, or Markdown/HTML API documentation URL.
 2. Resolve a verified CLI executable and create a secret-free review manifest.
-3. Require explicit approval for Markdown/HTML-derived operations.
+3. For Markdown/HTML-derived operations, require explicit user confirmation plus a CLI-issued receipt bound to the canonical digest.
 4. Invoke the CLI to generate a standalone TypeScript MCP project whose dependencies include `type-mcp` from npm.
-5. Verify the generated project and only then, after final owner/name/visibility confirmation, create and push its own GitHub repository.
+5. Verify the generated project and only then, after final owner/name/visibility/**source-branch** confirmation and ref verification, create and push its own GitHub repository.
 
 ## Canonical documentation
 
