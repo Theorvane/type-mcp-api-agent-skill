@@ -28,7 +28,8 @@ The skill is an orchestrator. It validates and invokes a compatible released CLI
 - Product scope: `docs/product/`
 - Architecture and cross-repository compatibility: `docs/architecture/`
 - Manifest and generated API contracts: `docs/api/`
-- Safety, auth, and publication guides: `docs/guides/`
+- Safety, auth, execution containment, and publication guides: `docs/guides/`
+- CLI release compatibility source of truth: `docs/guides/cli-compatibility.md`
 - Executable task plans: `docs/planning/`
 - Approved design history: `docs/superpowers/specs/`
 - Hermes operating rules and quality gates: `AGENTS.md`, `.agent/`

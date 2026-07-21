@@ -2,7 +2,7 @@
 
 **Status:** Approved contract; CLI and skill implementation pending.
 
-The manifest is the CLI-to-skill generation boundary and review artifact. It is JSON-serializable, versioned, secret-free, and canonicalized before hashing.
+The manifest is the CLI-to-skill generation boundary and review artifact. It is JSON-serializable, versioned, secret-free, and canonicalized before hashing. All persisted/displayed source identifiers and evidence are sanitized under `docs/guides/security-and-publication.md`; original URLs, redirects, local paths, credentials, and raw private diagnostics are never manifest fields.
 
 ## Invocation stages
 
@@ -21,8 +21,8 @@ The CLI contract exposes four conceptual stages. Names/flags will be fixed in th
 | --- | --- |
 | `manifestVersion` | Version of this contract |
 | `cliProtocolVersion` | CLI request/output protocol compatibility value |
-| `source` | Source kind, URL/path identifier, media type, retrieval time, and SHA-256 content hash |
-| `baseUrl` | Resolved API base URL or an explicit unresolved state |
+| `source` | Sanitized source kind, origin host, normalized path or opaque local ID, media type, retrieval time, and SHA-256 content hash |
+| `baseUrl` | Sanitized resolved API base URL or an explicit unresolved state |
 | `operations` | Candidate/approved/excluded operations |
 | `authentication` | Secret-free environment-variable mapping hints |
 | `warnings` | Ambiguities, unsupported constructs, and safety concerns |
@@ -62,7 +62,7 @@ Rules:
 | `input` | Parameters/request-body schema and required fields |
 | `responses` | Known response shapes or documented examples |
 | `policy` | Normative runtime policy object described below |
-| `evidence` | Source URL, source kind, and exact location/snippet reference |
+| `evidence` | Sanitized source kind, origin/path or opaque ID, and exact redacted location/snippet reference |
 | `confidence` | `high`, `medium`, or `low` with a reason |
 | `status` | `candidate`, `approved`, `excluded`, or `unsupported` |
 

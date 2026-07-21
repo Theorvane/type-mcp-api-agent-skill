@@ -49,17 +49,18 @@ The skill may not parse API definitions or render source itself. If the CLI lack
 
 ## CLI compatibility contract
 
-The skill requires these values from the CLI before generation:
+The skill requires these values from a CLI only after trusted resolution defined in `docs/guides/cli-compatibility.md`:
 
 | Value | Purpose |
 | --- | --- |
-| CLI package/name and semantic version | Provenance and supported command selection |
+| exact CLI package/version + npm integrity | Artifact provenance and allowed command selection |
+| resolved absolute bin path | Prevent `PATH` substitution and path escape |
 | manifest schema version | Compatibility gate before review/generation |
 | generation protocol version | Stable request/output compatibility between skill and CLI |
-| source provenance | URL/path identifier, media type, retrieval time, content hash |
+| sanitized source provenance | Safe origin/path identifier, retrieval time, content hash |
 | secret-free diagnostics | Safe errors/warnings for user review |
 
-The skill fails closed when a required version is absent or unsupported. It records only names/versions/hashes, never credentials or raw private specifications, in its task artifacts.
+No CLI release is currently supported. When a release is enabled, the skill fails closed when package integrity, absolute binary location, metadata protocol/schema, or policy version is absent or unsupported. It records only approved names/versions/integrities/sanitized hashes, never credentials or raw private specifications, in task artifacts.
 
 ## Data flow
 

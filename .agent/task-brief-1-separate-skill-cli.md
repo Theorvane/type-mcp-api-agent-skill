@@ -45,7 +45,7 @@ Make the repository a reusable Hermes skill that invokes an independently instal
 | Stage | Command | Expected/observed result |
 | --- | --- | --- |
 | Red | `python3 .agent/scripts/validate_docs.py` after adding required split-repo skill assertion | Failed before `skills/api-to-typemcp/SKILL.md` existed: missing required file. |
-| Green | `python3 .agent/scripts/validate_docs.py` | Pass after split-repo docs, skill contract, and approval/policy assertions are present. |
+| Green | `python3 .agent/scripts/validate_docs.py` | Pass: 19 Markdown files and 15 required harness files validated after split-repo, approval/policy, provenance, and containment assertions. |
 | Regression | `python3 -m py_compile .agent/scripts/validate_docs.py && git diff --check` | Pass. |
 
 ## Review remediation
@@ -56,6 +56,10 @@ Initial independent bootstrap review identified these important gaps, all addres
 2. Method policy is now normative: read methods, protected mutations, denied unknown methods, and visible reasoned overrides only.
 3. Current bootstrap status and the separate CLI boundary are explicit; the repository does not claim a local generator implementation.
 4. The validator asserts the non-negotiable approval/policy/bootstrap phrases instead of only structural Markdown properties.
+5. CLI compatibility now has one canonical fail-closed policy: no release is supported until exact package/version/integrity/protocol/schema values are reviewed and listed.
+6. Trusted CLI resolution requires an isolated registry install, integrity verification, absolute binary path checks, and scrubbed execution; metadata alone is not provenance.
+7. Source/evidence/diagnostic URLs and paths must be sanitized before persistence, hashing, display, or approval.
+8. Generation verification is contained in a fresh temporary workspace, begins with `npm ci --ignore-scripts`, uses local mocks by default, and requires separate approval for authenticated/live smoke tests.
 
 ## Verification
 
@@ -64,5 +68,6 @@ Initial independent bootstrap review identified these important gaps, all addres
 - [x] Diff check
 - [x] Secret-pattern scan
 - [x] Documentation updated
-- [ ] Independent specification review recorded
-- [ ] Independent code-quality review recorded
+- [x] Initial independent bootstrap review remediated
+- [ ] Final independent specification review recorded
+- [ ] Final independent code-quality review recorded

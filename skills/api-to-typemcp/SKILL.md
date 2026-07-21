@@ -45,11 +45,11 @@ For Markdown/HTML documents, manifest approval is mandatory. Do not proceed from
 ### 1. Establish the source and CLI
 
 1. Identify the source type: structured specification, Swagger UI, or supplied Markdown/HTML documentation.
-2. Resolve the CLI from an explicit user choice, project pin, or documented compatible release.
-3. Invoke the CLI metadata command and validate its package/name, semantic version, generation protocol version, and manifest schema version.
+2. Resolve an exact CLI only through [`docs/guides/cli-compatibility.md`](../../docs/guides/cli-compatibility.md). Until that policy enables a release, stop and report that no CLI is supported.
+3. For an enabled release, use the policy's isolated npm-install/integrity/absolute-bin flow before executing anything. Treat metadata as compatibility validation after artifact provenance, never as provenance proof.
 4. Stop on incompatibility or an untrusted executable; report the missing requirement rather than reimplementing CLI behavior.
 
-**Completion criterion:** the selected CLI and source descriptor are recorded without any secret value.
+**Completion criterion:** the selected CLI provenance (when a release is enabled) and sanitized source descriptor are recorded without any secret value; otherwise the workflow stops with the documented no-supported-CLI outcome.
 
 ### 2. Inspect and obtain a manifest
 
@@ -82,10 +82,17 @@ For Markdown/HTML documents, manifest approval is mandatory. Do not proceed from
 
 ### 5. Independently verify generated output
 
-Run the generated project’s documented checks in its own directory:
+Run generated-project checks only through the contained-verification policy in [`docs/guides/security-and-publication.md`](../../docs/guides/security-and-publication.md):
+
+1. use a fresh temporary workspace and scrubbed environment;
+2. inspect `package.json` and the lockfile, then run `npm ci --ignore-scripts`;
+3. keep upstream network calls disabled and use a local fixture/mock for the official-SDK MCP smoke test;
+4. run lifecycle scripts only inside that containment; and
+5. obtain separate explicit user approval before any authenticated/live-upstream smoke test.
+
+Within that boundary, run the generated project’s applicable checks:
 
 ```bash
-npm ci
 npm run lint
 npm run typecheck
 npm test
@@ -95,7 +102,7 @@ npm audit --omit=dev --audit-level=high
 git diff --check
 ```
 
-Also run an MCP smoke test through an official SDK transport. Verify a denied write-policy operation sends no upstream request. Treat failures as generator/manifest defects; do not patch generated source invisibly.
+Verify a denied write-policy operation sends no upstream request. Treat failures as generator/manifest defects; do not patch generated source invisibly.
 
 **Completion criterion:** fresh tool output demonstrates the generated project uses installed npm `type-mcp` and passes its applicable checks.
 

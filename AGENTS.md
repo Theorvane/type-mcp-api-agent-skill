@@ -30,14 +30,15 @@ When sources conflict, stop and update the lower-priority source before implemen
 
 1. **Manifest before generation.** Normalize every input through the CLI into the manifest contract. Markdown/HTML-derived operations require explicit user approval before source generation.
 2. **CLI boundary, not generator implementation.** The skill invokes a compatible released `type-mcp-api-cli` executable. Do not add OpenAPI parsing, Swagger UI scraping, document extraction, manifest rendering, or TypeScript source-template logic to this repository.
-3. **Provenance and compatibility.** Resolve the CLI from an explicit user-selected version, a documented default version range, or a verified project-local binary. Record the CLI name/version and manifest schema version in the task artifact. Fail safely when incompatible; do not silently substitute an arbitrary binary.
-4. **npm dependency, not source copying.** The CLI-generated `package.json` installs a verified `type-mcp` npm version. The skill verifies package exports and a generated-server smoke test.
+3. **Trusted CLI resolution.** Follow `docs/guides/cli-compatibility.md` exactly. No CLI release is supported until that policy lists its exact version, protocol/schema, and npm integrity. Never execute a `PATH` binary, self-reported metadata-only artifact, or user-local binary without the policy's explicit digest/path approval flow.
+4. **npm dependency, not source copying.** The CLI-generated `package.json` installs a verified `type-mcp` npm version. The skill verifies package exports and a generated-server smoke test only inside the contained verification boundary.
 5. **All tools, controlled execution.** Generate every approved endpoint tool. Runtime policy controls execution by operation/method; mutating calls are protected by default and never silently execute because a documentation parser guessed them.
-6. **Secrets never enter artifacts.** Do not write tokens to source, manifests, lockfiles, examples, logs, commits, or GitHub issues. Only environment-variable references and mapping names are allowed.
+6. **Secrets never enter artifacts.** Sanitize source descriptors, redirect targets, evidence URLs/snippets, diagnostics, and local paths before displaying, hashing, or persisting them. Do not write tokens to source, manifests, lockfiles, examples, logs, commits, or GitHub issues. Only environment-variable references and mapping names are allowed.
 7. **No unbounded discovery.** Swagger UI discovery may inspect its page/config and known spec URLs. Markdown/HTML extraction uses supplied documents only. A bare base URL is not endpoint enumeration permission.
-8. **Test first.** Every behavior change starts with one focused failing test and records the observed failure in its task brief.
-9. **Safe generated errors.** Generated tools return safe client-facing errors; they never expose stacks, credentials, response secrets, or raw upstream diagnostics.
-10. **No direct main changes after bootstrap.** Every change uses a focused GitHub Issue, issue-numbered branch, PR, CI, independent spec/code-quality review, and squash merge.
+8. **Contained execution.** CLI and generated-project verification run only in a fresh temporary workspace with a scrubbed environment, controlled working directory, and explicit network/upstream policy. Inspect the lockfile and run `npm ci --ignore-scripts` before any project lifecycle script. A live authenticated smoke test needs separate explicit user approval.
+9. **Test first.** Every behavior change starts with one focused failing test and records the observed failure in its task brief.
+10. **Safe generated errors.** Generated tools return safe client-facing errors; they never expose stacks, credentials, response secrets, or raw upstream diagnostics.
+11. **No direct main changes after bootstrap.** Every change uses a focused GitHub Issue, issue-numbered branch, PR, CI, independent spec/code-quality review, and squash merge.
 
 ## Required workflow
 

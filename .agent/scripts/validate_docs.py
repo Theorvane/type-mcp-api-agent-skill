@@ -16,6 +16,7 @@ REQUIRED_FILES = (
     "docs/architecture/overview.md",
     "docs/api/manifest-contract.md",
     "docs/guides/security-and-publication.md",
+    "docs/guides/cli-compatibility.md",
     "docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md",
     "docs/planning/README.md",
     "skills/api-to-typemcp/SKILL.md",
@@ -60,6 +61,15 @@ def main() -> int:
             "before upstream request construction or dispatch",
             "A source parser, operation name, or documentation prose cannot classify a mutating method as `read`",
             "canonical `manifestDigest`",
+            "Secret-safe provenance and evidence",
+            "Contained generation and verification",
+            "npm ci --ignore-scripts",
+        ),
+        "docs/guides/cli-compatibility.md": (
+            "no CLI release is supported yet",
+            "Trusted resolution flow",
+            "npm registry dist integrity",
+            "PATH` lookup alone is prohibited",
         ),
         "docs/architecture/overview.md": (
             "approval record binds the current canonical digest",
@@ -90,6 +100,8 @@ def main() -> int:
     for required_phrase in (
         "Manifest before generation",
         "CLI boundary, not generator implementation",
+        "Trusted CLI resolution",
+        "Contained execution",
         "No direct main changes",
     ):
         if required_phrase not in agents:

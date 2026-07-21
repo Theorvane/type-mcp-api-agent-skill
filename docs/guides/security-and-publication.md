@@ -1,33 +1,44 @@
-# Security, policy, CLI, and publication guide
+# Security, policy, CLI, verification, and publication guide
 
 **Status:** Approved guide; implementation pending.
 
 ## CLI trust and version selection
 
-The skill must invoke a deliberate CLI artifact, not whichever executable happens to be on `PATH`.
+The canonical compatibility and trusted-resolution policy is [`cli-compatibility.md`](cli-compatibility.md). It is the only source of truth for allowed package versions, protocol/schema values, npm integrity, and executable path expectations.
 
-1. Prefer an explicit user-selected/project-pinned CLI version or path.
-2. Query the CLI metadata stage and verify package/name, semantic version, generation protocol version, and manifest schema version against the skill's compatibility table.
-3. Record only non-secret version/provenance values in the task artifact.
-4. Stop on a missing, malformed, or incompatible CLI. Never fall back to copied generator code or an unverified alternate binary.
+- No CLI release is currently supported. The skill fails closed and must not execute a candidate CLI until the compatibility policy enables an exact release.
+- Self-reported CLI metadata is a post-resolution compatibility check, not proof of provenance.
+- `PATH` lookup is prohibited. A local binary is untrusted unless the user explicitly approves its absolute path and SHA-256 for one run under the policy's containment conditions.
 
-A direct CLI user is responsible for pinning the CLI in their own lockfile/CI; the skill makes that selection visible and verifies it before it performs side effects.
+## Secret-safe provenance and evidence
+
+The CLI and skill must sanitize external source identifiers **before displaying, hashing, storing, or using them as approval evidence**.
+
+1. Parse remote sources as URLs, never opaque display strings.
+2. Remove URL userinfo entirely.
+3. Replace query values for all keys with `REDACTED`; never retain signed query values. The key names may remain only when needed for diagnosis and are lowercased/allowlisted.
+4. Record only the original-origin host, normalized path, and a stable content hash; never persist redirect targets verbatim.
+5. Sanitize local paths to a project-relative identifier or opaque source ID; do not publish user home paths.
+6. Redact credentials from evidence snippets and diagnostics before they enter manifests, logs, task briefs, or approval displays.
+7. Compute content hashes from fetched bytes in ephemeral memory, but use only sanitized source identifiers in the persisted manifest.
+
+A source containing a likely credential produces a warning. A sanitization failure is fatal: no manifest, approval, generation, verification, or publication proceeds.
 
 ## Secret handling
 
 - Accept secret values only through runtime environment variables.
 - Store only variable names and header/query mapping metadata in manifests, `.env.example`, generated source, and documentation.
-- Never log request authorization headers, query values mapped as credentials, raw environment values, or downloaded private specs.
-- Redact upstream errors before returning MCP content.
-- The skill must not pass secrets to CLI arguments. Environment values, if ever needed during a separately approved smoke test, remain process-local and are never recorded.
+- Never log request authorization headers, credential query values, raw environment values, downloaded private specs, redirect URLs, or raw private diagnostics.
+- The skill must not pass secrets to CLI arguments.
+- A live authenticated smoke test is separately approved, process-local, and its values are never recorded.
 
 ## Authentication mapping
 
 The CLI may map known OpenAPI security schemes or user-provided mappings, for example:
 
 ```text
-ACME_API_TOKEN -> Authorization: Bearer ${ACME_API_TOKEN}
-ACME_API_KEY   -> X-API-Key: ${ACME_API_KEY}
+ACME_API_TOKEN -> Authorization: Bearer ***
+ACME_API_KEY   -> X-API-Key: ***
 ```
 
 It may also map an environment value to an approved query parameter. It must reject mappings that overwrite a user-provided request parameter without an explicit precedence rule.
@@ -46,7 +57,20 @@ A source parser, operation name, or documentation prose cannot classify a mutati
 
 ## Document-derived manifest approval
 
-The skill displays the complete CLI candidate manifest including confidence, citations, canonical `manifestDigest`, CLI protocol version, and approval state. For a document-derived manifest, it waits for explicit user confirmation of that exact digest before recording the required `approval` object. The CLI rejects stale or unbound approval. The skill does not invoke CLI source generation, output dependency install, upstream smoke test, GitHub creation, or push until approval is valid.
+The skill displays the complete CLI candidate manifest including sanitized source evidence, confidence, canonical `manifestDigest`, CLI protocol version, and approval state. For a document-derived manifest, it waits for explicit user confirmation of that exact digest before recording the required `approval` object. The CLI rejects stale or unbound approval. The skill does not invoke CLI source generation, output dependency install, upstream smoke test, GitHub creation, or push until approval is valid.
+
+## Contained generation and verification
+
+Generation and verification execute untrusted generated code/dependencies, so they must run in a newly created temporary workspace, never the skill repository or user workspace.
+
+1. Create a fresh directory owned by the current process; use it as the only CLI/output working directory.
+2. Run CLI and package commands with a scrubbed environment: retain only required runtime basics (`PATH`, temp/home set to isolated paths, locale), remove credentials, git configuration, cloud variables, npm auth, proxies unless explicitly approved, and inherited API endpoints.
+3. Default to no outbound network except the explicitly approved npm registry fetch needed for a pinned package. Do not make upstream API requests in normal verification.
+4. Inspect the generated `package.json`, lockfile, and npm registry/integrity metadata first. Run `npm ci --ignore-scripts` before any lifecycle script.
+5. Run static lint/typecheck and local tests only after inspection. Treat package scripts as untrusted; allow them only under the isolated environment and documented network policy.
+6. The MCP smoke test uses an official SDK transport against a local fixture/mock upstream. It must verify that denied writes make no upstream request.
+7. A smoke test against a live upstream, especially with authentication, requires separate explicit user approval naming the upstream and permitted operations.
+8. Remove the temporary workspace on success/failure unless the user explicitly asks to retain a redacted diagnostic artifact.
 
 ## GitHub publication confirmation
 
@@ -57,4 +81,4 @@ The CLI never creates or pushes output repositories. Immediately before the skil
 3. Visibility (`public` or `private`)
 4. Source branch to publish
 
-Create/push only after the confirmation. Verify that the remote has no credential-bearing files before reporting success.
+Create/push only after the confirmation. Scan staged/tracked files and remote content for credentials or private downloaded source artifacts before reporting success.
