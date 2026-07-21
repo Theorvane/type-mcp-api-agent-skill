@@ -101,6 +101,19 @@ describe("manifest contract", () => {
     });
   });
 
+  it("does not read external discriminator getters after schema validation", () => {
+    const value = manifest();
+    Object.defineProperty(value, "ok", {
+      configurable: true,
+      enumerable: false,
+      get() {
+        throw new Error("SECRET discriminator getter at /private/path");
+      },
+    });
+
+    expect(() => computeManifestDigest(value)).not.toThrow();
+  });
+
   it("does not leak getter errors while comparing a declared digest", () => {
     const value = manifest();
     let reads = 0;

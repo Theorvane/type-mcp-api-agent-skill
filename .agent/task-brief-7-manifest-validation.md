@@ -40,7 +40,7 @@ Expose a deterministic, side-effect-free manifest-contract API that validates an
 | --- | --- | --- |
 | Red | `npm test -- --run test/manifest-contract.test.ts` | Observed failure: `Cannot find module '../src/manifest.js'`. |
 | Green | `npm test -- --run test/manifest-contract.test.ts` | Passed: 5 tests. |
-| Regression | `npm run verify` | Passed: lint, strict typecheck, 15 tests, build, package dry-run, installed-bin E2E. |
+| Regression | `npm run verify` | Passed: lint, strict typecheck, 18 tests, build, package dry-run, installed-bin E2E. |
 
 ## Verification
 

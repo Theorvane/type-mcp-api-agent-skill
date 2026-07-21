@@ -193,27 +193,31 @@ function manifestDigestMismatch(): ManifestContractError {
   };
 }
 
-function validatedManifest(
-  value: unknown,
-): Record<string, unknown> | ManifestContractError {
+interface ValidatedManifest {
+  readonly ok: true;
+  readonly manifest: Record<string, unknown>;
+}
+
+interface InvalidManifest {
+  readonly ok: false;
+  readonly error: ManifestContractError;
+}
+
+type ValidatedManifestResult = ValidatedManifest | InvalidManifest;
+
+function validatedManifest(value: unknown): ValidatedManifestResult {
   try {
     if (!isRecord(value) || !getSchemaValidator()(value)) {
-      return schemaError();
+      return { ok: false, error: schemaError() };
     }
-    return value;
+    return { ok: true, manifest: value };
   } catch {
-    return schemaError();
+    return { ok: false, error: schemaError() };
   }
 }
 
 function getField(record: object, key: string): unknown {
   return Reflect.get(record, key);
-}
-
-function isContractError(
-  value: Record<string, unknown> | ManifestContractError,
-): value is ManifestContractError {
-  return getField(value, "ok") === false && isRecord(getField(value, "error"));
 }
 
 function digestPayload(
@@ -242,10 +246,11 @@ export function canonicalizeJson(value: unknown): CanonicalJsonResult {
 }
 
 export function computeManifestDigest(value: unknown): ManifestDigestResult {
-  const manifest = validatedManifest(value);
-  if (isContractError(manifest)) {
-    return manifest;
+  const validated = validatedManifest(value);
+  if (!validated.ok) {
+    return validated.error;
   }
+  const manifest = validated.manifest;
 
   let payload: Record<DigestPayloadKey, unknown>;
   try {
@@ -268,10 +273,11 @@ export function computeManifestDigest(value: unknown): ManifestDigestResult {
 }
 
 export function validateManifestV1(value: unknown): ManifestValidationResult {
-  const manifest = validatedManifest(value);
-  if (isContractError(manifest)) {
-    return manifest;
+  const validated = validatedManifest(value);
+  if (!validated.ok) {
+    return validated.error;
   }
+  const manifest = validated.manifest;
 
   const computed = computeManifestDigest(manifest);
   if (!computed.ok) {
