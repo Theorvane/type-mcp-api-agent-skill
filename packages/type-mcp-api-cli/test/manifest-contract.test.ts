@@ -74,6 +74,33 @@ describe("manifest contract", () => {
     });
   });
 
+  it("does not leak getter errors during digest payload extraction", () => {
+    const value = manifest();
+    let reads = 0;
+    Object.defineProperty(value, "source", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        reads += 1;
+        if (reads >= 4) {
+          throw new Error("SECRET raw payload at /private/path");
+        }
+        return {
+          kind: "openapi",
+          contentHash: `sha256:${"1".repeat(64)}`,
+        };
+      },
+    });
+
+    expect(computeManifestDigest(value)).toEqual({
+      ok: false,
+      error: {
+        code: "CANONICALIZATION_FAILED",
+        message: "Value cannot be represented as canonical JSON",
+      },
+    });
+  });
+
   it("fails closed for a digest mismatch and schema-invalid values", () => {
     expect(validateManifestV1(manifest())).toEqual({
       ok: false,

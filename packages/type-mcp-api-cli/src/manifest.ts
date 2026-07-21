@@ -247,7 +247,14 @@ export function computeManifestDigest(value: unknown): ManifestDigestResult {
     return manifest;
   }
 
-  const canonical = canonicalizeJson(digestPayload(manifest));
+  let payload: Record<DigestPayloadKey, unknown>;
+  try {
+    payload = digestPayload(manifest);
+  } catch {
+    return canonicalizationError();
+  }
+
+  const canonical = canonicalizeJson(payload);
   if (!canonical.ok) {
     return canonical;
   }
