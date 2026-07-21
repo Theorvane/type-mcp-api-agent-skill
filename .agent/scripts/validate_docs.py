@@ -18,6 +18,7 @@ REQUIRED_FILES = (
     "docs/guides/security-and-publication.md",
     "docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md",
     "docs/planning/README.md",
+    "skills/api-to-typemcp/SKILL.md",
     ".agent/templates/task-brief.md",
     ".agent/templates/review-report.md",
     ".agent/checklists/pre-commit.md",
@@ -47,8 +48,21 @@ def main() -> int:
         print("Missing local Markdown links:", *missing_links, sep="\n- ")
         return 1
 
+    skill = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
+    if not skill.startswith("---\n") or "\n---\n" not in skill[4:]:
+        print("Skill must start with YAML frontmatter and a non-empty body")
+        return 1
+    for required_phrase in ("name: api-to-typemcp", "type-mcp-api-cli", "manifest approval"):
+        if required_phrase not in skill:
+            print(f"Skill missing required contract phrase: {required_phrase}")
+            return 1
+
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    for required_phrase in ("Manifest before generation", "npm dependency, not source copying", "No direct main changes"):
+    for required_phrase in (
+        "Manifest before generation",
+        "CLI boundary, not generator implementation",
+        "No direct main changes",
+    ):
         if required_phrase not in agents:
             print(f"AGENTS.md missing required operating rule: {required_phrase}")
             return 1

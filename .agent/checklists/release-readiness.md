@@ -4,12 +4,13 @@
 
 - [ ] Release commit is on `main` after required reviews/CI.
 - [ ] Repository documentation matches implemented behavior; planned features remain marked planned.
-- [ ] No credential, downloaded private API document, generated customer project, or local artifact is tracked.
-- [ ] Package lock and dependency audit are current when packages exist.
+- [ ] No credential, downloaded private API document, generated customer project, CLI binary/cache, or local artifact is tracked.
+- [ ] The repository contains skill/harness code only, not a copied CLI engine.
 
-## Generator safety
+## Skill/CLI contract
 
-- [ ] OpenAPI/Swagger, Swagger UI, and document-derived behavior has current tests where implemented.
+- [ ] The supported CLI package/version range and manifest/protocol schema versions are documented.
+- [ ] Fixture tests cover compatible CLI, incompatible CLI, malformed manifest, and unsafe-side-effect rejection.
 - [ ] Document-derived code generation requires manifest approval.
 - [ ] Generated output installs `type-mcp` from the npm registry in a clean temporary directory.
 - [ ] Generated MCP smoke test uses an official MCP SDK transport.
@@ -18,5 +19,5 @@
 ## Publication
 
 - [ ] GitHub repository creation/push confirmation fields are documented and tested.
-- [ ] Release notes identify any new external side effect or policy behavior.
+- [ ] Release notes identify any new external side effect, policy behavior, or supported CLI compatibility range.
 - [ ] Remote `main` matches the intended release commit.

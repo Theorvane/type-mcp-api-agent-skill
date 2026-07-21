@@ -2,22 +2,33 @@
 
 **Status:** Approved scope; implementation pending.
 
+## Product ownership
+
+| Concern | `type-mcp-api-cli` | `type-mcp-api-agent` |
+| --- | --- | --- |
+| Parse, normalize, diagnose, render | Owns | Invokes only |
+| CLI install/version compatibility | Publishes versioned contract | Resolves/verifies before invocation |
+| API-source manifest | Produces | Displays, obtains approvals, stores approved artifact safely |
+| Generated-project checks | Emits deterministic metadata | Runs independent verification gates |
+| GitHub output repository creation/push | Does not perform | Performs only after explicit final confirmation |
+
 ## Included
 
 | Capability | MVP boundary |
 | --- | --- |
-| OpenAPI 3.x | Parse JSON/YAML URLs and local files into the common manifest |
-| Swagger 2.0 | Parse JSON/YAML URLs and local files, then normalize into the common manifest |
-| Swagger UI | Discover an underlying JSON/YAML specification from the supplied UI page/config or known spec references |
-| Markdown/HTML docs | Extract evidence-backed candidate operations from supplied documentation URLs |
-| Manifest | Include endpoints, schemas, auth hints, evidence, confidence, and executable policy defaults |
-| Approval | Require explicit manifest approval before generating from Markdown/HTML-derived operations |
-| Code generation | Create a standalone TypeScript project whose dependencies include the npm `type-mcp` package |
-| Endpoint coverage | Generate a tool for every approved endpoint, including mutating methods |
-| Execution policy | Control read/write endpoint execution at runtime with environment/config policy, defaulting to protected mutations |
-| Authentication | Environment-variable references plus explicit header/query mapping; no secret values in generated artifacts |
-| Validation | Generator tests plus generated project install, lint, typecheck, build, and MCP smoke test |
-| Publication | On explicit final confirmation, create and push a separately named GitHub repository |
+| CLI input | OpenAPI 3.x / Swagger 2.0 JSON/YAML URL or local file, Swagger UI URL, or Markdown/HTML documentation URL |
+| CLI output | Versioned secret-free manifest, diagnostics, and a rendered standalone TypeScript project |
+| Skill intake | Validate source choice, resolve compatible CLI, and call staged CLI commands |
+| Swagger UI | CLI discovers an underlying JSON/YAML specification from supplied UI page/config or known spec references |
+| Markdown/HTML docs | CLI extracts evidence-backed candidate operations from supplied documentation URLs |
+| Approval | Skill requires explicit manifest approval before CLI generation from Markdown/HTML-derived operations |
+| Code generation | CLI renders a standalone TypeScript project whose dependencies include the npm `type-mcp` package |
+| Endpoint coverage | CLI generates a tool for every approved endpoint, including mutating methods |
+| Execution policy | Generated runtime controls read/write endpoint execution, defaulting to protected mutations |
+| Authentication | Environment-variable references plus explicit header/query mapping; no secret values in artifacts |
+| Compatibility | Skill checks CLI name/version and manifest schema compatibility before generation |
+| Validation | CLI tests plus skill fixture-contract test, generated-project install/lint/typecheck/build/MCP smoke test |
+| Publication | Skill creates/pushes a separately named GitHub repository only after explicit final confirmation |
 
 ## Deferred
 
@@ -28,9 +39,9 @@
 | Persistent credential stores | Environment injection is the smallest safe first boundary |
 | Automatic destructive-call approval UX | Runtime policy is explicit; interactive approval protocol needs its own contract |
 | GraphQL, gRPC, WebSocket, SOAP | HTTP API intake must be proven before protocol-specific expansion |
-| OpenAPI custom extensions beyond recognized fields | Add only from real source requirements with tests |
+| CLI source vendoring in the skill repo | Breaks independent install/use/versioning and creates duplicate generation behavior |
 | Auto-publication without a final confirmation | GitHub repository creation and push are external side effects |
 
 ## Change control
 
-A deferred capability requires an updated product/architecture decision, API behavior table, a failing test, and a reviewed plan before implementation.
+A deferred capability or a cross-repository protocol change requires an updated product/architecture decision, API behavior table, a failing test/fixture assertion, and a reviewed plan before implementation.
