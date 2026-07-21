@@ -66,9 +66,9 @@ The skill fails closed when a required version is absent or unsupported. It reco
 1. User provides a source URL/file and optionally an explicit CLI version/path.
 2. Skill resolves a compatible CLI executable from an approved source.
 3. CLI retrieves/parses bounded input and records secret-free provenance.
-4. CLI normalizes operations into the manifest contract.
-5. Skill displays the manifest and requires explicit approval for document-derived candidates.
-6. CLI renders a standalone TypeScript MCP project with `type-mcp` from npm.
+4. CLI normalizes operations into the manifest contract, including canonical digest, source kind, approval state, and derived policy.
+5. Skill displays the manifest and records explicit approval bound to the exact digest for document-derived candidates.
+6. CLI rejects stale/unbound document approval and renders a standalone TypeScript MCP project with `type-mcp` from npm only when eligible.
 7. Skill runs generated-project lint/typecheck/test/build and an official-transport smoke test.
 8. Only after a final publication confirmation does the skill create and push the output repository.
 
@@ -77,6 +77,12 @@ The skill fails closed when a required version is absent or unsupported. It reco
 Generation does not omit approved endpoints. Generated policy controls execution by operation ID and HTTP method; mutating operations are protected by default. The policy decision occurs before any upstream request.
 
 GitHub creation/push is outside CLI behavior and only runs in the skill after final confirmation of owner, repository name, and visibility.
+
+## Approval and policy invariants
+
+- A document-derived manifest is generation-eligible only when its explicit approval record binds the current canonical digest, manifest version, and CLI protocol version.
+- `GET`, `HEAD`, and `OPTIONS` derive `read`; `POST`, `PUT`, `PATCH`, and `DELETE` derive `protected-write`; unknown methods derive `deny`.
+- An override is a user-visible, reasoned manifest edit, never a parser inference, and policy is evaluated before upstream request construction.
 
 ## Invariants
 

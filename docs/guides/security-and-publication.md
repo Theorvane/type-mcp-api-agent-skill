@@ -34,16 +34,19 @@ It may also map an environment value to an approved query parameter. It must rej
 
 ## Runtime execution policy
 
-Every approved operation becomes a tool. Before an upstream call, generated code evaluates policy:
+Every approved operation becomes a tool. Policy is derived and enforced as specified in `docs/api/manifest-contract.md` **before upstream request construction or dispatch**:
 
-- Read methods (`GET`, `HEAD`, `OPTIONS`) are allowed unless explicitly denied.
-- Mutating methods (`POST`, `PUT`, `PATCH`, `DELETE`) are generated but protected by default.
-- Explicit runtime configuration can allow a protected operation/method.
-- A denied operation returns a safe MCP error and sends no upstream request.
+| Method | Default mode | Runtime behavior |
+| --- | --- | --- |
+| `GET`, `HEAD`, `OPTIONS` | `read` | allowed unless an explicit policy denies it |
+| `POST`, `PUT`, `PATCH`, `DELETE` | `protected-write` | generated but blocked until deliberate runtime configuration permits it |
+| any other or unknown method | `deny` | safe MCP error; no upstream request |
+
+A source parser, operation name, or documentation prose cannot classify a mutating method as `read`. An override requires a visible manifest edit with `origin: approved-override`, a reason, and the normal manifest-approval binding when document-derived. A denied operation sends no upstream request.
 
 ## Document-derived manifest approval
 
-The skill displays the complete CLI candidate manifest including confidence and citations. It waits for explicit approval before CLI source generation, output dependency install, upstream smoke test, GitHub creation, or push.
+The skill displays the complete CLI candidate manifest including confidence, citations, canonical `manifestDigest`, CLI protocol version, and approval state. For a document-derived manifest, it waits for explicit user confirmation of that exact digest before recording the required `approval` object. The CLI rejects stale or unbound approval. The skill does not invoke CLI source generation, output dependency install, upstream smoke test, GitHub creation, or push until approval is valid.
 
 ## GitHub publication confirmation
 

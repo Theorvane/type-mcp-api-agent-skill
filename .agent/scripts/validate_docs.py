@@ -48,6 +48,35 @@ def main() -> int:
         print("Missing local Markdown links:", *missing_links, sep="\n- ")
         return 1
 
+    contract_files = {
+        "docs/api/manifest-contract.md": (
+            "Canonical digest and approval object",
+            "document-derived manifest begins as `pending`",
+            "CLI `generate` stage rejects every document-derived manifest",
+            "Normative execution-policy derivation",
+            "Any other/unknown method",
+        ),
+        "docs/guides/security-and-publication.md": (
+            "before upstream request construction or dispatch",
+            "A source parser, operation name, or documentation prose cannot classify a mutating method as `read`",
+            "canonical `manifestDigest`",
+        ),
+        "docs/architecture/overview.md": (
+            "approval record binds the current canonical digest",
+            "unknown methods derive `deny`",
+        ),
+        "README.md": (
+            "skill repository",
+            "Neither the skill runtime nor the companion CLI implementation is published from this repository yet",
+        ),
+    }
+    for relative_path, required_phrases in contract_files.items():
+        content = (ROOT / relative_path).read_text(encoding="utf-8")
+        for required_phrase in required_phrases:
+            if required_phrase not in content:
+                print(f"{relative_path} missing required safety contract phrase: {required_phrase}")
+                return 1
+
     skill = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
     if not skill.startswith("---\n") or "\n---\n" not in skill[4:]:
         print("Skill must start with YAML frontmatter and a non-empty body")

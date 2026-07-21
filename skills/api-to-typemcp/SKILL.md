@@ -55,17 +55,19 @@ For Markdown/HTML documents, manifest approval is mandatory. Do not proceed from
 
 1. Invoke the CLI inspect stage on the supplied source.
 2. Invoke the manifest stage and receive a secret-free, versioned manifest plus safe diagnostics.
-3. Verify that the manifest has source provenance, content hash, operations, auth mapping names, confidence, evidence, and warnings.
-4. Present the operation table and warnings to the user.
+3. Verify the manifest has source kind, content hash, operations, auth mapping names, confidence, evidence, warnings, a canonical `manifestDigest`, and a valid approval object.
+4. Present the operation table, derived policy, approval state, and warnings to the user.
 
-**Completion criterion:** there is one complete manifest artifact whose hash, CLI version, and schema/protocol versions are known.
+**Completion criterion:** there is one complete manifest artifact whose canonical digest, approval state, CLI version, and schema/protocol versions are known.
 
 ### 3. Apply approval and policy gates
 
-1. If any operation derives from Markdown/HTML evidence, ask for explicit approval of the manifest.
-2. Let the user remove operations or adjust tool names, auth mapping names, and policy before approval.
-3. Mark `POST`, `PUT`, `PATCH`, and `DELETE` as generated-but-protected unless the approved runtime policy says otherwise.
-4. If the manifest changes, invalidate approval and repeat review.
+1. If the manifest is document-derived, ask for explicit approval of its displayed canonical `manifestDigest`.
+2. Record `approval.state: approved` only after the user confirms that exact digest; never rely on operation status alone.
+3. Let the user remove operations or adjust tool names, auth mapping names, and policy before approval.
+4. Derive `GET`/`HEAD`/`OPTIONS` as `read`; `POST`/`PUT`/`PATCH`/`DELETE` as `protected-write`; and unknown methods as `deny`. A parser may not change that mapping.
+5. Permit a policy override only as a visible, reasoned `approved-override` manifest edit; then recompute digest and repeat approval if document-derived.
+6. If the manifest changes, invalidate approval and repeat review.
 
 **Completion criterion:** every operation to generate is explicitly approved and write behavior is policy-gated.
 
@@ -122,8 +124,8 @@ Immediately before GitHub creation/push, ask for and record confirmation of owne
 
 - [ ] CLI provenance/version and manifest schema/protocol compatibility verified
 - [ ] Manifest is secret-free and evidence-backed
-- [ ] Document-derived operations explicitly approved
-- [ ] Every approved operation generated; mutating operations protected by policy
+- [ ] Document-derived approval record binds the current manifest digest/version/protocol
+- [ ] Every approved operation generated; normative mutation/unknown-method policy is enforced before dispatch
 - [ ] Generated project installs npm `type-mcp` and passes applicable checks
 - [ ] Official-transport MCP smoke test passes
 - [ ] GitHub owner/name/visibility/branch confirmed immediately before publication
