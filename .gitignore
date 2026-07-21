@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.tmp/
+tmp/
+artifacts/
+generated/
+downloaded-specs/
+.DS_Store

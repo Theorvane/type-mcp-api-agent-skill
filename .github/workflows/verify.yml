@@ -1,0 +1,23 @@
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docs-and-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate repository documentation and harness
+        run: |
+          python3 .agent/scripts/validate_docs.py
+          python3 -m py_compile .agent/scripts/validate_docs.py
+          git diff --check
