@@ -6,10 +6,10 @@ Every plan must link its issue, list exact files/commands, define acceptance/err
 
 ## Cross-repository planning rule
 
-Plans must identify their target repository and may not smuggle CLI behavior into the skill repository or skill orchestration behavior into the CLI repository.
+Plans must identify their target boundary (`root skill/docs` or `packages/type-mcp-api-cli`) and may not smuggle CLI behavior into root skill code or skill orchestration behavior into the CLI package.
 
-- CLI engine, parsers, templates, manifest schema production, and source rendering are planned in `type-mcp-api-cli`.
-- Hermes UX, CLI compatibility, approvals, independent verification, and confirmed publication are planned in `type-mcp-api-agent`.
-- Any shared protocol change needs linked issues/plans in both repositories and a version/fixture compatibility test.
+- CLI engine, parsers, templates, manifest schema production, and source rendering live in `packages/type-mcp-api-cli`.
+- Hermes UX, CLI compatibility, approvals, independent verification, and confirmed publication live at the repository root.
+- Any shared protocol change needs a linked issue/plan identifying both root and CLI-package impact, plus a version/fixture compatibility test.
 
 No implementation starts without a plan derived from `docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md`.

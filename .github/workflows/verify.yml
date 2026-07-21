@@ -19,6 +19,24 @@ jobs:
       - name: Validate repository documentation and harness
         run: |
           python3 .agent/scripts/test_validate_docs.py
+          python3 .agent/scripts/test_workspace.py
           python3 .agent/scripts/validate_docs.py
-          python3 -m py_compile .agent/scripts/validate_docs.py .agent/scripts/test_validate_docs.py
+          python3 -m py_compile .agent/scripts/validate_docs.py .agent/scripts/test_validate_docs.py .agent/scripts/test_workspace.py
           git diff --check
+
+  cli-package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/type-mcp-api-cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/type-mcp-api-cli/package-lock.json
+      - run: npm ci
+      - run: npm run verify
+      - run: npm audit --omit=dev --audit-level=high
+      - run: git diff --check
