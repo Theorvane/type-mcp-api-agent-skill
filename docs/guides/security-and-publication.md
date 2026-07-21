@@ -74,11 +74,6 @@ Generation and verification execute untrusted generated code/dependencies, so th
 
 ## GitHub publication confirmation
 
-The CLI never creates or pushes output repositories. Immediately before the skill publishes a verified project, request confirmation of:
-
-1. GitHub owner or organization
-2. Repository name
-3. Visibility (`public` or `private`)
-4. Source branch to publish
+The CLI never creates or pushes output repositories. Immediately before the skill publishes a verified project, record user confirmation of **owner/org, repository name, visibility, and source branch**.
 
 Before staging, committing, or pushing, resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Create/push only after this ref verification. Scan staged/tracked files and remote content for credentials or private downloaded source artifacts before reporting success.

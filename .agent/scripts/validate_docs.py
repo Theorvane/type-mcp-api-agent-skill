@@ -92,6 +92,21 @@ def main() -> int:
                 print(f"{relative_path} missing required safety contract phrase: {required_phrase}")
                 return 1
 
+    publication_contracts = (
+        "owner/org, repository name, visibility, and source branch",
+        "actual checked-out/ref-to-publish branch",
+        "before staging, committing, or pushing",
+    )
+    for relative_path in (
+        "docs/guides/security-and-publication.md",
+        "skills/api-to-typemcp/SKILL.md",
+    ):
+        content = (ROOT / relative_path).read_text(encoding="utf-8").lower()
+        for required_phrase in publication_contracts:
+            if required_phrase not in content:
+                print(f"{relative_path} missing required publication contract: {required_phrase}")
+                return 1
+
     skill = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
     if not skill.startswith("---\n") or "\n---\n" not in skill[4:]:
         print("Skill must start with YAML frontmatter and a non-empty body")
