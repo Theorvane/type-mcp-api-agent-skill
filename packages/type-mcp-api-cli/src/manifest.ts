@@ -277,7 +277,13 @@ export function validateManifestV1(value: unknown): ManifestValidationResult {
   if (!computed.ok) {
     return computed;
   }
-  if (getField(manifest, "manifestDigest") !== computed.manifestDigest) {
+  let declaredDigest: unknown;
+  try {
+    declaredDigest = getField(manifest, "manifestDigest");
+  } catch {
+    return canonicalizationError();
+  }
+  if (declaredDigest !== computed.manifestDigest) {
     return manifestDigestMismatch();
   }
   return computed;

@@ -101,6 +101,30 @@ describe("manifest contract", () => {
     });
   });
 
+  it("does not leak getter errors while comparing a declared digest", () => {
+    const value = manifest();
+    let reads = 0;
+    Object.defineProperty(value, "manifestDigest", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        reads += 1;
+        if (reads >= 7) {
+          throw new Error("SECRET digest getter at /private/path");
+        }
+        return `sha256:${"0".repeat(64)}`;
+      },
+    });
+
+    expect(validateManifestV1(value)).toEqual({
+      ok: false,
+      error: {
+        code: "CANONICALIZATION_FAILED",
+        message: "Value cannot be represented as canonical JSON",
+      },
+    });
+  });
+
   it("fails closed for a digest mismatch and schema-invalid values", () => {
     expect(validateManifestV1(manifest())).toEqual({
       ok: false,
