@@ -33,7 +33,11 @@ def main() -> int:
         print("Missing required files:", *missing, sep="\n- ")
         return 1
 
-    markdown_files = sorted(ROOT.rglob("*.md"))
+    markdown_files = sorted(
+        path
+        for path in ROOT.rglob("*.md")
+        if "node_modules" not in path.parts and ".git" not in path.parts
+    )
     empty = [str(path.relative_to(ROOT)) for path in markdown_files if not path.read_text(encoding="utf-8").strip()]
     if empty:
         print("Empty Markdown files:", *empty, sep="\n- ")
@@ -81,8 +85,9 @@ def main() -> int:
             "owner/org, name, visibility, and source-branch confirmation",
         ),
         "README.md": (
-            "skill repository",
-            "Neither the skill runtime nor the companion CLI implementation is published from this repository yet",
+            "workspace repository",
+            "packages/type-mcp-api-cli",
+            "not published from this repository yet",
         ),
     }
     for relative_path, required_phrases in contract_files.items():

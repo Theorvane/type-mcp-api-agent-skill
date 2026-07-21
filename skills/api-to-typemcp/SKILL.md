@@ -13,7 +13,7 @@ metadata:
 
 ## Overview
 
-This skill orchestrates the separately installed `type-mcp-api-cli`. It does not parse specifications, extract endpoints, create TypeScript templates, or substitute its own generator. The CLI is the deterministic engine; this skill is the approval, safety, verification, and publication layer.
+This skill orchestrates the independently versioned `packages/type-mcp-api-cli` package in this workspace (or a future trusted npm release of that same package). It does not parse specifications, extract endpoints, create TypeScript templates, or substitute its own generator. The CLI is the deterministic engine; this skill is the approval, safety, verification, and publication layer.
 
 The target is a normal standalone TypeScript MCP repository whose runtime dependency is npm `type-mcp`.
 

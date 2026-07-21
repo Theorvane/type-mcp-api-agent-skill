@@ -39,9 +39,9 @@
 | Persistent credential stores | Environment injection is the smallest safe first boundary |
 | Automatic destructive-call approval UX | Runtime policy is explicit; interactive approval protocol needs its own contract |
 | GraphQL, gRPC, WebSocket, SOAP | HTTP API intake must be proven before protocol-specific expansion |
-| CLI source vendoring in the skill repo | Breaks independent install/use/versioning and creates duplicate generation behavior |
+| Duplicating CLI logic in root skill code | Breaks the package boundary and creates competing generation behavior |
 | Auto-publication without a final confirmation | GitHub repository creation and push are external side effects |
 
 ## Change control
 
-A deferred capability or a cross-repository protocol change requires an updated product/architecture decision, API behavior table, a failing test/fixture assertion, and a reviewed plan before implementation.
+A deferred capability or cross-package protocol change requires an updated product/architecture decision, API behavior table, a failing test/fixture assertion, and a reviewed plan before implementation.

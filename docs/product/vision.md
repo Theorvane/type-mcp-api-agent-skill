@@ -1,6 +1,6 @@
 # Product vision
 
-**Status:** Approved product target; skill and CLI implementation pending.
+**Status:** Approved product target; root skill contract and a local-only CLI bootstrap are implemented.
 
 ## Problem
 
@@ -10,12 +10,12 @@ Different users also need different interfaces: a CI pipeline needs a determinis
 
 ## Product statement
 
-The product is deliberately split into two independently usable repositories:
+The product is deliberately split into two independently usable **packages within one workspace repository**:
 
-| Repository | Product role |
+| Boundary | Product role |
 | --- | --- |
-| `type-mcp-api-cli` | Deterministic API-source intake, manifest normalization, diagnostics, and TypeMCP project rendering CLI |
-| `type-mcp-api-agent` | Hermes skill that invokes the CLI and manages approval, safety, verification, and confirmed GitHub publication |
+| `packages/type-mcp-api-cli` | Deterministic API-source intake, manifest normalization, diagnostics, and TypeMCP project-rendering CLI |
+| root `skills/api-to-typemcp` | Hermes skill that invokes the CLI package and manages approval, safety, verification, and confirmed GitHub publication |
 
 The CLI is useful directly in a terminal or CI. The skill is useful when a user wants a guided and reviewable workflow. Both paths generate normal TypeScript MCP projects that install `type-mcp` from npm.
 

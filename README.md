@@ -1,38 +1,67 @@
-# type-mcp-api-agent
+# type-mcp-api-agent-skill
 
-A Hermes skill repository for turning supplied API sources into standalone TypeMCP MCP repositories **by invoking the separate `type-mcp-api-cli` CLI**.
+A unified **workspace repository** for API-to-TypeMCP automation:
+
+- root: the `api-to-typemcp` Hermes skill, approval/publication safety policy, and orchestration harness;
+- `packages/type-mcp-api-cli/`: the deterministic TypeScript CLI package used directly in terminal/CI workflows and by the skill after trusted compatibility resolution.
 
 ## Status
 
-This repository currently contains the approved skill contract, product specification, and engineering harness. Neither the skill runtime nor the companion CLI implementation is published from this repository yet.
+The repository contains an implemented local-only CLI bootstrap (`metadata --json`, plus local OpenAPI 3.x / Swagger 2.0 `inspect --file <path> --json`) and the approved skill/orchestration contract. The CLI is intentionally a distinct package boundary inside this workspace. The CLI package is **not published from this repository yet** and remains `private`; the complete manifest/approval/generation workflow is also not implemented.
 
 ## Choose a usage mode
 
 | Need | Use |
 | --- | --- |
-| Deterministic intake, manifest creation, or project generation in a terminal/CI pipeline | `type-mcp-api-cli` (separate CLI repository/package; planned) |
-| Guided API-source discovery, manifest approval, safety checks, verification, and confirmed GitHub publication | this repository's `api-to-typemcp` Hermes skill |
+| Deterministic local structured-spec inspection in terminal/CI | `packages/type-mcp-api-cli/` directly |
+| Guided source discovery, manifest approval, safety gates, verification, and confirmed GitHub publication | root `skills/api-to-typemcp/` Hermes skill |
 
-The skill is an orchestrator. It validates and invokes a compatible released CLI; it does not reimplement parsing, normalization, or source rendering.
+The skill is an orchestrator. It invokes the CLI package; it does not duplicate parsing, normalization, manifest rendering, or project templates.
 
-## Intended skill workflow
+## Workspace layout
 
-1. Accept an OpenAPI/Swagger JSON or YAML URL/file, Swagger UI URL, or Markdown/HTML API documentation URL.
-2. Resolve a verified CLI executable and create a secret-free review manifest.
-3. For Markdown/HTML-derived operations, require explicit user confirmation plus a CLI-issued receipt bound to the canonical digest.
-4. Invoke the CLI to generate a standalone TypeScript MCP project whose dependencies include `type-mcp` from npm.
-5. Verify the generated project and only then, after final owner/name/visibility/**source-branch** confirmation and ref verification, create and push its own GitHub repository.
+```text
+.
+├── skills/api-to-typemcp/       # Hermes orchestration skill
+├── docs/                        # product, architecture, contract, and safety policy
+├── .agent/                      # root harness and documentation regression checks
+└── packages/type-mcp-api-cli/   # standalone deterministic TypeScript CLI package
+```
+
+## Current CLI commands
+
+```bash
+cd packages/type-mcp-api-cli
+npm ci
+npm run build
+node dist/cli.js metadata --json
+node dist/cli.js inspect --file ./openapi.yaml --json
+```
+
+`inspect` reads only one local JSON/YAML source, produces a secret-free summary, and does not use the network or generate files. Remote intake, Swagger UI discovery, Markdown/HTML extraction, manifest creation, approval receipts, and project generation remain planned.
+
+## Verification
+
+```bash
+# Root skill/docs harness
+python3 .agent/scripts/test_validate_docs.py
+python3 .agent/scripts/test_workspace.py
+python3 .agent/scripts/validate_docs.py
+
+# CLI package
+npm --prefix packages/type-mcp-api-cli ci
+npm --prefix packages/type-mcp-api-cli run verify
+npm --prefix packages/type-mcp-api-cli audit --omit=dev --audit-level=high
+```
 
 ## Canonical documentation
 
 - Product scope: `docs/product/`
-- Architecture and cross-repository compatibility: `docs/architecture/`
+- Architecture and package boundary: `docs/architecture/`
 - Manifest and generated API contracts: `docs/api/`
 - Safety, auth, execution containment, and publication guides: `docs/guides/`
-- CLI release compatibility source of truth: `docs/guides/cli-compatibility.md`
-- Executable task plans: `docs/planning/`
-- Approved design history: `docs/superpowers/specs/`
-- Hermes operating rules and quality gates: `AGENTS.md`, `.agent/`
+- Trusted CLI compatibility source of truth: `docs/guides/cli-compatibility.md`
+- CLI implementation contract: `packages/type-mcp-api-cli/docs/api/cli-contract.md`
 - Skill instructions: `skills/api-to-typemcp/SKILL.md`
 
-Read `AGENTS.md` before changing this repository. Do not represent planned CLI or generation behavior as implemented behavior.
+Read `AGENTS.md` before changing either root orchestration or the CLI package. Do not represent planned CLI or generation behavior as implemented behavior.

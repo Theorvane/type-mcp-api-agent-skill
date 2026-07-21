@@ -1,6 +1,6 @@
 # type-mcp-api-agent Design
 
-**Status:** Approved for documentation and planning; implementation requires issue-level plans.
+**Status:** Historical approved design. Superseded on 2026-07-21 by the unified workspace decision: the canonical repository is `type-mcp-api-agent-skill`, with the CLI located at `packages/type-mcp-api-cli/`. Preserve this document as design history; current source of truth is `docs/product/` and `docs/architecture/`.
 
 ## Goal
 
@@ -59,7 +59,7 @@ OAuth/OIDC acquisition, credential persistence, base-URL endpoint scanning, Grap
 
 ## Implementation decomposition
 
-### CLI repository
+### CLI package boundary
 
 1. Bootstrap package/tooling and deterministic manifest schemas.
 2. Implement OpenAPI/Swagger file and URL intake.

@@ -26,7 +26,7 @@ A CLI release becomes supported only through one focused cross-repository change
 3. npm registry dist integrity (`sha512-...`) for each supported exact package version.
 4. The expected package `bin` mapping and executable relative path.
 5. Fixture tests covering compatible, incompatible, tampered, and missing metadata cases.
-6. Linked release/verification evidence from the CLI repository.
+6. Linked release/verification evidence from `packages/type-mcp-api-cli/` and its package release record.
 
 If package, protocol, schema, or integrity changes, compatibility must be updated first. A broad range does not waive integrity verification: every resolved exact version needs a documented expected integrity.
 

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theorvane.github.io/type-mcp-api-cli/schemas/api-manifest-1.schema.json",
+  "title": "TypeMCP API manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifestVersion",
+    "cliProtocolVersion",
+    "manifestDigest",
+    "source",
+    "baseUrl",
+    "operations",
+    "authentication",
+    "warnings",
+    "approval"
+  ],
+  "properties": {
+    "manifestVersion": { "const": 1 },
+    "cliProtocolVersion": { "const": 1 },
+    "manifestDigest": { "$ref": "#/$defs/digest" },
+    "source": { "$ref": "#/$defs/source" },
+    "baseUrl": { "type": ["string", "null"] },
+    "operations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    },
+    "authentication": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/authentication" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/warning" }
+    },
+    "approval": { "$ref": "#/$defs/approval" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "contentHash"],
+      "properties": {
+        "kind": { "enum": ["openapi", "swagger", "swagger-ui", "markdown", "html"] },
+        "originHost": { "type": "string", "minLength": 1 },
+        "path": { "type": "string" },
+        "opaqueId": { "type": "string", "minLength": 1 },
+        "mediaType": { "type": "string", "minLength": 1 },
+        "retrievedAt": { "type": "string", "format": "date-time" },
+        "contentHash": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "method", "path", "summary", "input", "responses", "policy", "evidence", "confidence", "status"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "method": { "type": "string", "pattern": "^[A-Z]+$" },
+        "path": { "type": "string", "pattern": "^/" },
+        "summary": { "type": "string" },
+        "input": { "type": "object", "additionalProperties": false, "properties": {} },
+        "responses": { "type": "object", "additionalProperties": false, "properties": {} },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "origin", "reason"],
+          "properties": {
+            "mode": { "enum": ["read", "protected-write", "deny"] },
+            "origin": { "enum": ["derived", "approved-override"] },
+            "reason": { "type": "string" }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "reference"],
+          "properties": {
+            "kind": { "enum": ["openapi", "swagger", "swagger-ui", "markdown", "html"] },
+            "reference": { "type": "string" }
+          }
+        },
+        "confidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["level", "reason"],
+          "properties": {
+            "level": { "enum": ["high", "medium", "low"] },
+            "reason": { "type": "string" }
+          }
+        },
+        "status": { "enum": ["candidate", "approved", "excluded", "unsupported"] }
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environmentVariable", "location", "name"],
+      "properties": {
+        "environmentVariable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "location": { "enum": ["header", "query"] },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    },
+    "approval": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requirement", "manifestDigest"],
+          "properties": {
+            "requirement": { "const": "none" },
+            "manifestDigest": { "$ref": "#/$defs/digest" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requirement", "challengeId", "challengeExpiresAt", "manifestDigest"],
+          "properties": {
+            "requirement": { "const": "explicit-user-confirmation" },
+            "challengeId": { "type": "string", "minLength": 1 },
+            "challengeExpiresAt": { "type": "string", "format": "date-time" },
+            "manifestDigest": { "$ref": "#/$defs/digest" }
+          }
+        }
+      ]
+    }
+  }
+}

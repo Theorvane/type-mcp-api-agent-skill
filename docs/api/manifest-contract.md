@@ -16,7 +16,7 @@ The **manifest is not an approval credential**. A document-derived manifest beco
 | `approve` | CLI state directory, challenge ID, exact digest, explicit confirmation signal | CLI-issued approval receipt | no generated files or upstream API calls |
 | `generate` | eligible manifest, verified receipt if required, empty output path | rendered project and generation metadata | no GitHub publication |
 
-Exact flags are defined in the CLI repository. The skill does not invent stages or bypass them.
+Exact flags are defined in `packages/type-mcp-api-cli/` in this workspace. The skill does not invent stages or bypass them.
 
 ## Schema and canonical digest
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`type-mcp-api-agent` is the standalone Hermes **skill/orchestration** repository for producing TypeMCP MCP projects from API sources. It invokes the separately versioned and installable `type-mcp-api-cli` CLI. The CLI owns deterministic intake, parsing, normalization, manifest serialization, and source rendering; this repository owns user interaction, manifest approval, CLI provenance/version checks, safety gates, generated-project verification, and confirmed publication.
+`type-mcp-api-agent-skill` is a unified workspace repository: the root owns the Hermes **skill/orchestration** contract, while `packages/type-mcp-api-cli/` contains the separately versioned and installable `type-mcp-api-cli` package. The CLI owns deterministic intake, parsing, normalization, manifest serialization, and source rendering; root orchestration owns user interaction, manifest approval, CLI provenance/version checks, safety gates, generated-project verification, and confirmed publication.
 
 Generated projects install and execute the published `type-mcp` npm package. No repository in this product family copies `type-mcp` source into generated output.
 
@@ -19,12 +19,12 @@ When sources conflict, stop and update the lower-priority source before implemen
 
 ## Repository boundaries
 
-- `skills/`: Hermes skills that orchestrate the companion CLI. They may not duplicate CLI parsing/generation logic.
-- `docs/`: canonical product, architecture, API, safety, compatibility, and planning documents for the skill.
-- `.agent/`: tracked task briefs, checklists, review templates, fixtures, and deterministic harness scripts.
-- `.github/`: issue/PR templates and skill/harness CI.
-- `type-mcp-api-cli` is a **separate repository/package**, not a subdirectory, workspace package, git submodule, or copied source tree here.
-- Generated user projects, credentials, downloaded specs, CLI binaries/caches, build output, coverage, and `node_modules/` are not committed here.
+- `skills/`: Hermes skills that orchestrate `packages/type-mcp-api-cli/`. They may not duplicate CLI parsing/generation logic.
+- `docs/`: canonical product, architecture, API, safety, compatibility, and planning documents for root orchestration and the package boundary.
+- `packages/type-mcp-api-cli/`: standalone deterministic CLI package source, lockfile, schemas, tests, and package docs. Its own `AGENTS.md` governs implementation within that directory.
+- `.agent/`: tracked root task briefs, checklists, review templates, fixtures, and deterministic harness scripts.
+- `.github/`: root CI for both the docs/harness and CLI package.
+- Generated user projects, credentials, downloaded specs, CLI binaries/caches, build output, coverage, and `node_modules/` are not committed.
 
 ## Non-negotiable rules
 
