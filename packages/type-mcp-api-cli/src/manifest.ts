@@ -127,7 +127,14 @@ function canonicalizeValue(value: unknown, ancestors: WeakSet<object>): string {
     }
     ancestors.add(value);
     try {
-      return `[${value.map((item) => canonicalizeValue(item, ancestors)).join(",")}]`;
+      const serializedItems: string[] = [];
+      for (let index = 0; index < value.length; index += 1) {
+        if (!Object.hasOwn(value, index)) {
+          throw new Error("Sparse array");
+        }
+        serializedItems.push(canonicalizeValue(value[index], ancestors));
+      }
+      return `[${serializedItems.join(",")}]`;
     } finally {
       ancestors.delete(value);
     }

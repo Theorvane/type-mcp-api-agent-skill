@@ -94,7 +94,7 @@ describe("manifest contract", () => {
     });
   });
 
-  it("rejects non-finite numbers and lone surrogates before canonicalization", () => {
+  it("rejects non-finite numbers, lone surrogates, and sparse arrays before canonicalization", () => {
     expect(canonicalizeJson(Number.NaN)).toEqual({
       ok: false,
       error: {
@@ -103,6 +103,16 @@ describe("manifest contract", () => {
       },
     });
     expect(canonicalizeJson("\ud800")).toEqual({
+      ok: false,
+      error: {
+        code: "CANONICALIZATION_FAILED",
+        message: "Value cannot be represented as canonical JSON",
+      },
+    });
+    const sparse = new Array<number>(3);
+    sparse[0] = 1;
+    sparse[2] = 2;
+    expect(canonicalizeJson(sparse)).toEqual({
       ok: false,
       error: {
         code: "CANONICALIZATION_FAILED",

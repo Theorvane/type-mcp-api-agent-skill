@@ -50,6 +50,6 @@ This inspection stage does not construct a manifest, resolve `$ref`, normalize e
 - `computeManifestDigest(value)` to validate an unknown v1 manifest and compute lowercase `sha256:<hex>` over exactly `manifestVersion`, `cliProtocolVersion`, `source`, `baseUrl`, `operations`, `authentication`, and `warnings`;
 - `validateManifestV1(value)` to additionally require that top-level `manifestDigest` exactly matches the computed value.
 
-All contract failures return a fixed safe code/message pair: `MANIFEST_SCHEMA_INVALID`, `MANIFEST_DIGEST_MISMATCH`, or `CANONICALIZATION_FAILED`. These library APIs do not persist data, issue challenges/receipts, construct a manifest from an API source, or generate files.
+All contract failures return a fixed safe code/message pair: `MANIFEST_SCHEMA_INVALID`, `MANIFEST_DIGEST_MISMATCH`, or `CANONICALIZATION_FAILED`. Canonicalization rejects non-finite numbers, invalid Unicode, sparse arrays, cyclic values, and non-JSON values. These library APIs do not persist data, issue challenges/receipts, construct a manifest from an API source, or generate files.
 
 The staged CLI commands (`manifest`, `approve`, `generate`) remain approved design but are not implemented.
