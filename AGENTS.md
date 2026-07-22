@@ -38,7 +38,7 @@ When sources conflict, stop and update the lower-priority source before implemen
 8. **Contained execution.** CLI and generated-project verification run only in a fresh temporary workspace with a scrubbed environment, controlled working directory, and explicit network/upstream policy. Inspect the lockfile and run `npm ci --ignore-scripts` before any project lifecycle script. A live authenticated smoke test needs separate explicit user approval.
 9. **Test first.** Every behavior change starts with one focused failing test and records the observed failure in its task brief.
 10. **Safe generated errors.** Generated tools return safe client-facing errors; they never expose stacks, credentials, response secrets, or raw upstream diagnostics.
-11. **No direct main changes after bootstrap.** Every change uses a focused GitHub Issue, issue-numbered branch, PR, CI, independent spec/code-quality review, and squash merge.
+11. **Protected branch flow after bootstrap.** Every change uses a focused GitHub Issue, issue-numbered branch from `dev`, PR into `dev`, CI, independent spec/code-quality review, and squash merge. `main` is release-only and accepts only reviewed promotion PRs from `dev`.
 
 ## Required workflow
 

@@ -3,7 +3,7 @@ name: verify
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [dev, main]
 
 permissions:
   contents: read
@@ -20,8 +20,10 @@ jobs:
         run: |
           python3 .agent/scripts/test_validate_docs.py
           python3 .agent/scripts/test_workspace.py
+          python3 .agent/scripts/test_validate_branch_governance.py
           python3 .agent/scripts/validate_docs.py
-          python3 -m py_compile .agent/scripts/validate_docs.py .agent/scripts/test_validate_docs.py .agent/scripts/test_workspace.py
+          python3 .agent/scripts/validate_branch_governance.py
+          python3 -m py_compile .agent/scripts/validate_docs.py .agent/scripts/test_validate_docs.py .agent/scripts/test_workspace.py .agent/scripts/validate_branch_governance.py .agent/scripts/test_validate_branch_governance.py
           git diff --check
 
   cli-package:
