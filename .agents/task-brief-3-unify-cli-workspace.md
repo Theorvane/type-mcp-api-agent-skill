@@ -18,9 +18,9 @@ Move the deterministic `type-mcp-api-cli` package into the root skill repository
 
 | Behavior | Command | Evidence |
 | --- | --- | --- |
-| unified CI package job | `python3 .agent/scripts/test_workspace.py` | RED: `cli-package` job absent; GREEN after root workflow added package verification. |
-| docs validator ignores dependency docs | `python3 .agent/scripts/validate_docs.py` | RED: installed nested `node_modules` Markdown links failed; GREEN after excluding `node_modules`/`.git` paths. |
-| root harness | `python3 .agent/scripts/test_validate_docs.py && python3 .agent/scripts/test_workspace.py && python3 .agent/scripts/validate_docs.py` | GREEN. |
+| unified CI package job | `python3 .agents/scripts/test_workspace.py` | RED: `cli-package` job absent; GREEN after root workflow added package verification. |
+| docs validator ignores dependency docs | `python3 .agents/scripts/validate_docs.py` | RED: installed nested `node_modules` Markdown links failed; GREEN after excluding `node_modules`/`.git` paths. |
+| root harness | `python3 .agents/scripts/test_validate_docs.py && python3 .agents/scripts/test_workspace.py && python3 .agents/scripts/validate_docs.py` | GREEN. |
 | relocated CLI package | `npm ci && npm run verify && npm audit --omit=dev --audit-level=high` from `packages/type-mcp-api-cli` | GREEN: 10 tests, package-bin E2E, 0 production vulnerabilities. |
 
 ## External operations after PR merge

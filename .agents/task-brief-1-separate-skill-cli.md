@@ -44,9 +44,9 @@ Make the repository a reusable Hermes skill that invokes an independently instal
 
 | Stage | Command | Expected/observed result |
 | --- | --- | --- |
-| Red | `python3 .agent/scripts/validate_docs.py` after adding required split-repo skill assertion | Failed before `skills/api-to-typemcp/SKILL.md` existed: missing required file. |
-| Green | `python3 .agent/scripts/validate_docs.py` | Pass: 19 Markdown files and 15 required harness files validated after split-repo, approval/policy, provenance, and containment assertions. |
-| Regression | `python3 -m py_compile .agent/scripts/validate_docs.py .agent/scripts/test_validate_docs.py && git diff --check` | Pass; publication-contract test mutations are rejected. |
+| Red | `python3 .agents/scripts/validate_docs.py` after adding required split-repo skill assertion | Failed before `skills/api-to-typemcp/SKILL.md` existed: missing required file. |
+| Green | `python3 .agents/scripts/validate_docs.py` | Pass: 19 Markdown files and 15 required harness files validated after split-repo, approval/policy, provenance, and containment assertions. |
+| Regression | `python3 -m py_compile .agents/scripts/validate_docs.py .agents/scripts/test_validate_docs.py && git diff --check` | Pass; publication-contract test mutations are rejected. |
 
 ## Review remediation
 

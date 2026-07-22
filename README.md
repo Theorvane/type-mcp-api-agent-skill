@@ -24,7 +24,7 @@ The skill is an orchestrator. It invokes the CLI package; it does not duplicate 
 .
 ├── skills/api-to-typemcp/       # Hermes orchestration skill
 ├── docs/                        # product, architecture, contract, and safety policy
-├── .agent/                      # root harness and documentation regression checks
+├── .agents/                     # root harness and documentation regression checks
 └── packages/type-mcp-api-cli/   # standalone deterministic TypeScript CLI package
 ```
 
@@ -44,9 +44,9 @@ node dist/cli.js inspect --file ./openapi.yaml --json
 
 ```bash
 # Root skill/docs harness
-python3 .agent/scripts/test_validate_docs.py
-python3 .agent/scripts/test_workspace.py
-python3 .agent/scripts/validate_docs.py
+python3 .agents/scripts/test_validate_docs.py
+python3 .agents/scripts/test_workspace.py
+python3 .agents/scripts/validate_docs.py
 
 # CLI package
 npm --prefix packages/type-mcp-api-cli ci
