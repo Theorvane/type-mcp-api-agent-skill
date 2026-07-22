@@ -1,0 +1,17 @@
+name: release-promotion
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-promotion:
+    runs-on: ubuntu-latest
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - name: Require the dev integration branch
+        run: test "$HEAD_REF" = "dev"
