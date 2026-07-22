@@ -41,12 +41,12 @@ Only `metadata --json`, local structured-spec `inspect --file <path> --json`, th
 ## Workflow after bootstrap
 
 1. Inspect open issues/PRs and create or update one focused Issue.
-2. Branch from current `origin/main`: `<type>/<issue-number>-<description>`.
+2. Branch from current `origin/dev`: `<type>/<issue-number>-<description>`.
 3. For multi-behavior work, create a task brief from `.agent/templates/task-brief.md`.
 4. Record RED test evidence, implement minimally, and rerun focused/full checks.
 5. Update docs for public behavior and contracts.
-6. Run the verification baseline, review the diff, commit, push, and open a PR with `Closes #<issue>`.
-7. Obtain independent specification and code-quality review before squash merge.
+6. Run the verification baseline, review the diff, commit, push, and open a PR into `dev` with `Closes #<issue>`.
+7. Obtain independent specification and code-quality review before squash merge. Promote reviewed `dev` to release-only `main` in a separate release PR.
 
 ## Verification baseline
 

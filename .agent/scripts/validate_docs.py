@@ -133,7 +133,7 @@ def main() -> int:
         "CLI boundary, not generator implementation",
         "Trusted CLI resolution",
         "Contained execution",
-        "No direct main changes",
+        "Protected branch flow after bootstrap",
     ):
         if required_phrase not in agents:
             print(f"AGENTS.md missing required operating rule: {required_phrase}")
