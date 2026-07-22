@@ -37,7 +37,7 @@ class UnifiedWorkspaceTests(unittest.TestCase):
         self.assertNotIn("approval receipt, and project generation commands", readme)
 
     def test_docs_validator_skips_embedded_dependency_markdown(self) -> None:
-        validator = (ROOT / ".agent/scripts/validate_docs.py").read_text(encoding="utf-8")
+        validator = (ROOT / ".agents/scripts/validate_docs.py").read_text(encoding="utf-8")
 
         self.assertIn('"node_modules" not in path.parts', validator)
 

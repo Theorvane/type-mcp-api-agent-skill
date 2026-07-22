@@ -21,7 +21,7 @@ When root orchestration and package documents disagree, stop and reconcile the d
 - `schemas/`: versioned closed JSON Schemas published with the package.
 - `test/`: Vitest behavior and CLI-contract tests.
 - `docs/`: canonical product, architecture, API, security, and planning documentation.
-- `.agent/`: task briefs/checklists only; never runtime imports.
+- `.agents/`: task briefs/checklists only; never runtime imports.
 
 ## Non-negotiable rules
 
@@ -42,7 +42,7 @@ Only `metadata --json`, local structured-spec `inspect --file <path> --json`, th
 
 1. Inspect open issues/PRs and create or update one focused Issue.
 2. Branch from current `origin/dev`: `<type>/<issue-number>-<description>`.
-3. For multi-behavior work, create a task brief from `.agent/templates/task-brief.md`.
+3. For multi-behavior work, create a task brief from `.agents/templates/task-brief.md`.
 4. Record RED test evidence, implement minimally, and rerun focused/full checks.
 5. Update docs for public behavior and contracts.
 6. Run the verification baseline, review the diff, commit, push, and open a PR into `dev` with `Closes #<issue>`.

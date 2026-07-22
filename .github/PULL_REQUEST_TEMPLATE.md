@@ -18,7 +18,7 @@ Closes #
 
 ## Verification
 
-- [ ] `python3 .agent/scripts/validate_docs.py`
+- [ ] `python3 .agents/scripts/validate_docs.py`
 - [ ] lint
 - [ ] typecheck
 - [ ] test

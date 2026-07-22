@@ -22,7 +22,7 @@ When sources conflict, stop and update the lower-priority source before implemen
 - `skills/`: Hermes skills that orchestrate `packages/type-mcp-api-cli/`. They may not duplicate CLI parsing/generation logic.
 - `docs/`: canonical product, architecture, API, safety, compatibility, and planning documents for root orchestration and the package boundary.
 - `packages/type-mcp-api-cli/`: standalone deterministic CLI package source, lockfile, schemas, tests, and package docs. Its own `AGENTS.md` governs implementation within that directory.
-- `.agent/`: tracked root task briefs, checklists, review templates, fixtures, and deterministic harness scripts.
+- `.agents/`: tracked root task briefs, checklists, review templates, fixtures, and deterministic harness scripts.
 - `.github/`: root CI for both the docs/harness and CLI package.
 - Generated user projects, credentials, downloaded specs, CLI binaries/caches, build output, coverage, and `node_modules/` are not committed.
 
@@ -42,13 +42,13 @@ When sources conflict, stop and update the lower-priority source before implemen
 
 ## Required workflow
 
-1. Read the linked issue plus relevant docs and `.agent/templates/task-brief.md`.
+1. Read the linked issue plus relevant docs and `.agents/templates/task-brief.md`.
 2. Create a task brief for any change touching more than one behavior.
 3. Write and run a focused failing test or deterministic harness assertion.
 4. Implement the smallest safe change.
 5. Run focused tests, the skill/CLI fixture contract test, documentation validator, and `git diff --check`.
 6. Update affected product/API/safety/compatibility docs.
-7. Complete `.agent/checklists/pre-commit.md`, commit one intent, push, and create/update a PR with `Closes #<issue>`.
+7. Complete `.agents/checklists/pre-commit.md`, commit one intent, push, and create/update a PR with `Closes #<issue>`.
 8. Obtain independent specification and code-quality reviews before merge.
 
 ## Skill-to-CLI contract
@@ -81,8 +81,8 @@ Creating/pushing a generated repository is an external side effect. Immediately 
 The skill/harness must define deterministic checks equivalent to:
 
 ```bash
-python3 .agent/scripts/validate_docs.py
-python3 -m py_compile .agent/scripts/validate_docs.py
+python3 .agents/scripts/validate_docs.py
+python3 -m py_compile .agents/scripts/validate_docs.py
 # once the skill has executable tests:
 npm ci
 npm run lint

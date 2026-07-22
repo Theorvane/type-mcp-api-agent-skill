@@ -30,7 +30,7 @@ Provide two selectable products for turning supplied API specifications or docum
 type-mcp-api-agent/                 # this repository
 ├── skills/api-to-typemcp/           # Hermes orchestration skill
 ├── docs/                            # skill/product/contract docs
-└── .agent/                          # harness and fixture CLI contract tests
+└── .agents/                         # harness and fixture CLI contract tests
 
 type-mcp-api-cli/                    # separate planned repository
 ├── src/                             # intake, normalize, render CLI engine

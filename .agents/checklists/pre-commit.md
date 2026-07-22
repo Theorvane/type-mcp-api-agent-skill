@@ -30,8 +30,8 @@ Complete every applicable item before committing a non-bootstrap change.
 
 ## Verification
 
-- [ ] `python3 .agent/scripts/validate_docs.py`
-- [ ] `python3 -m py_compile .agent/scripts/validate_docs.py`
+- [ ] `python3 .agents/scripts/validate_docs.py`
+- [ ] `python3 -m py_compile .agents/scripts/validate_docs.py`
 - [ ] skill-to-CLI fixture contract test, when executable behavior changes
 - [ ] `npm run lint` / `npm run typecheck` / `npm test` / `npm run build`, when package exists
 - [ ] generated-project E2E verification, when orchestration changes

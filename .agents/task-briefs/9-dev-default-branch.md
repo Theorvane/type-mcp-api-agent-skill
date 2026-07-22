@@ -26,8 +26,8 @@ Use protected `dev` for integration while retaining protected `main` solely for 
 
 | Stage | Command | Expected/observed result |
 | --- | --- | --- |
-| Red | `test -f .agent/scripts/validate_branch_governance.py` | failed: validator was absent |
-| Green | `python3 .agent/scripts/validate_branch_governance.py` | pending |
+| Red | `test -f .agents/scripts/validate_branch_governance.py` | failed: validator was absent |
+| Green | `python3 .agents/scripts/validate_branch_governance.py` | pending |
 | Regression | docs harness and CLI verification baseline | pending |
 
 ## Verification

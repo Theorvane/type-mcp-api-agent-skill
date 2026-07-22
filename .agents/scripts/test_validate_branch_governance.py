@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-VALIDATOR = ".agent/scripts/validate_branch_governance.py"
+VALIDATOR = ".agents/scripts/validate_branch_governance.py"
 WORKFLOW = ".github/workflows/verify.yml"
 
 
