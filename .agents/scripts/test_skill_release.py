@@ -200,6 +200,76 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertEqual(urlopen.call_count, 2)
         sleep.assert_called_once()
 
+    def test_existing_unpublished_skill_is_recovered_before_version_reconciliation(self) -> None:
+        spec = importlib.util.spec_from_file_location("publish_skills_hub", PUBLISHER)
+        assert spec is not None and spec.loader is not None
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+
+        responses = iter(
+            [
+                (200, {"data": [{"slug": "integration"}]}),
+                (200, {"slug": "api-to-typemcp", "status": "DRAFT"}),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.1"}),
+                (200, [{"version": "0.1.1"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.1"}),
+            ]
+        )
+        calls: list[tuple[str, str]] = []
+
+        def mocked_request(
+            _api: str, _token: str, path: str, method: str = "GET", _payload: object = None, **_: object
+        ) -> tuple[int, object]:
+            calls.append((method, path))
+            return next(responses)
+
+        environment = {
+            "SKILLS_HUB_AI_API_KEY": "test-key",
+            "SKILL_VERSION": "0.1.1",
+            "GITHUB_SHA": "test-sha",
+            "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
+        }
+        with patch.dict(os.environ, environment, clear=False), patch.object(publisher, "request", mocked_request):
+            publisher.publish()
+
+        self.assertIn(("POST", "/skills/api-to-typemcp/publish"), calls)
+        self.assertNotIn(("POST", "/skills/api-to-typemcp/versions"), calls)
+
+    def test_version_conflict_is_reconciled_without_a_second_mutation(self) -> None:
+        spec = importlib.util.spec_from_file_location("publish_skills_hub", PUBLISHER)
+        assert spec is not None and spec.loader is not None
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+
+        responses = iter(
+            [
+                (200, {"data": [{"slug": "integration"}]}),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED"}),
+                (200, []),
+                (409, {"error": "version already exists"}),
+                (200, [{"version": "0.1.1"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.1"}),
+            ]
+        )
+        calls: list[tuple[str, str]] = []
+
+        def mocked_request(
+            _api: str, _token: str, path: str, method: str = "GET", _payload: object = None, **_: object
+        ) -> tuple[int, object]:
+            calls.append((method, path))
+            return next(responses)
+
+        environment = {
+            "SKILLS_HUB_AI_API_KEY": "test-key",
+            "SKILL_VERSION": "0.1.1",
+            "GITHUB_SHA": "test-sha",
+            "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
+        }
+        with patch.dict(os.environ, environment, clear=False), patch.object(publisher, "request", mocked_request):
+            publisher.publish()
+
+        self.assertEqual(calls.count(("POST", "/skills/api-to-typemcp/versions")), 1)
+
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
 

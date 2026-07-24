@@ -155,6 +155,14 @@ def publish() -> None:
             raise SystemExit(f"skills-hub.ai skill publication failed (HTTP {status}).")
         require_published(published, version)
     elif status == 200:
+        if publication_state(skill) != "PUBLISHED":
+            status, published = request(api, token, f"/skills/{name}/publish", "POST", {}, retry=False)
+            if status in RETRYABLE_STATUSES or status == 409:
+                status, published = request(api, token, f"/skills/{name}")
+            if status not in (200, 201):
+                raise SystemExit(f"skills-hub.ai existing skill publication failed (HTTP {status}).")
+            require_published(published, version)
+
         status, versions = request(api, token, f"/skills/{name}/versions")
         if status != 200:
             raise SystemExit(f"skills-hub.ai version lookup failed (HTTP {status}).")
@@ -171,7 +179,7 @@ def publish() -> None:
                 },
                 retry=False,
             )
-            if status in RETRYABLE_STATUSES:
+            if status in RETRYABLE_STATUSES or status == 409:
                 status, recovered_versions = request(api, token, f"/skills/{name}/versions")
                 if status == 200 and version_exists(recovered_versions, version):
                     status = 200

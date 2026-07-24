@@ -42,7 +42,7 @@ A reviewed `dev` → `main` promotion releases the same SemVer-tagged `api-to-ty
 | Stage | Command | Expected/observed result |
 | --- | --- | --- |
 | Red | `python3 .agents/scripts/test_skill_release.py` | Fails because skills-hub.ai job, secret gate, and category metadata are absent. |
-| Green | `python3 .agents/scripts/test_skill_release.py` | Passed: 7 contract tests after the skills-hub.ai gate, API publisher, and category metadata were added. |
+| Green | `python3 .agents/scripts/test_skill_release.py` | Passed: 11 contract and mocked state-machine tests, including category API validation, existing-unpublished recovery, capped retry delay, and 409 version reconciliation. |
 | Regression | root harness + `npm run verify` + `actionlint` | Passed locally; `npm audit --omit=dev --audit-level=high` found 0 vulnerabilities. |
 
 ## Verification
