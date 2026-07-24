@@ -68,14 +68,18 @@ def request(
     method: str = "GET",
     payload: dict[str, Any] | None = None,
     retry: bool = True,
+    public: bool = False,
 ) -> tuple[int, object | None]:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json", "X-Skills-Hub-Client": "github-actions"}
+    if not public:
+        headers = auth_headers(token)
     for attempt in range(MAX_ATTEMPTS):
         req = Request(
             f"{api.rstrip('/')}{path}",
             data=data,
             method=method,
-            headers=auth_headers(token),
+            headers=headers,
         )
         try:
             with urlopen(req, timeout=30) as response:
@@ -119,7 +123,7 @@ def publish() -> None:
     if version != os.environ.get("SKILL_VERSION"):
         raise SystemExit("SKILL.md version does not match the release version.")
 
-    status, categories = request(api, token, "/categories/")
+    status, categories = request(api, token, "/categories/", public=True)
     if status != 200 or not category_exists(categories, category):
         raise SystemExit("skills-hub.ai does not recognize the SKILL.md category.")
 

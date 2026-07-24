@@ -1,7 +1,7 @@
 ---
 name: api-to-typemcp
 description: Use when a user wants to turn an API URL, OpenAPI/Swagger file or link, Swagger UI, or Markdown/HTML API documentation into a standalone TypeMCP MCP project through the type-mcp-api-cli.
-version: 0.1.1
+version: 0.1.2
 category: integration
 license: MIT
 metadata:
