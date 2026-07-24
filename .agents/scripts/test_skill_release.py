@@ -118,6 +118,19 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertLess(token_check, release_mutation)
         self.assertIn("secrets.CLAWHUB_TOKEN", workflow)
 
+    def test_only_the_release_job_receives_write_contents_permission(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertNotIn("permissions:\n  contents: write", workflow)
+        release = re.search(r"^  release:\n(?P<body>.*?)(?=^  \w|\Z)", workflow, re.DOTALL | re.MULTILINE)
+        publish = re.search(r"^  publish-clawhub:\n(?P<body>.*)", workflow, re.DOTALL | re.MULTILINE)
+        self.assertIsNotNone(release)
+        self.assertIsNotNone(publish)
+        assert release is not None and publish is not None
+        self.assertIn("permissions:\n      contents: write", release.group("body"))
+        self.assertIn("permissions:\n      contents: read", publish.group("body"))
+        self.assertEqual(publish.group("body").count("persist-credentials: false"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

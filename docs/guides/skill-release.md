@@ -10,7 +10,7 @@ Update the skill's `version` using SemVer whenever its published behavior change
 - GitHub Release title: `api-to-typemcp v<version>`
 - ClawHub skill version: `<version>`
 
-The release workflow rejects a missing or non-SemVer version. It will not overwrite an existing tag: an existing tag is accepted only when its GitHub Release targets the same merged `main` commit. This makes a failed registry publication retryable without creating a second release.
+A GitHub Release is retry-safe: an existing tag is accepted only when its GitHub Release targets the same merged `main` commit. ClawHub versions are immutable as well: after a registry-side failure, inspect the exact publisher/skill/version before retrying. If that exact version is already present, verify its provenance and complete the release record rather than attempting a duplicate publication.
 
 ## Required repository setup
 
@@ -37,4 +37,4 @@ gh release view v<version> --repo Theorvane/type-mcp-api-agent-skill
 clawhub inspect @<publisher>/api-to-typemcp --version <version>
 ```
 
-If the GitHub Release exists but registry registration failed, correct the registry-side prerequisite and rerun the failed workflow. Do not manually create another tag or change its target.
+If the GitHub Release exists but registry registration failed, correct the registry-side prerequisite and inspect `@<publisher>/api-to-typemcp --version <version>` before retrying. If the same artifact is already registered, verify its provenance; do not publish a duplicate, create another tag, or change the tag target.
