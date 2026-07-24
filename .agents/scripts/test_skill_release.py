@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import os
 import re
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -20,6 +23,40 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertIsNotNone(match, "SKILL.md must declare a frontmatter version")
         assert match is not None
         self.assertRegex(match.group(1), SEMVER)
+
+    def test_version_extraction_step_executes_and_writes_outputs(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        match = re.search(
+            r"Read and validate the skill version\n\s+id: version\n\s+run: \|\n(?P<script>(?: {10}.*\n)+)",
+            workflow,
+        )
+        self.assertIsNotNone(match, "workflow must include the version extraction step")
+        assert match is not None
+        python = re.search(
+            r"python3 - <<'PY'\n(?P<body>.*?)^\s{10}PY$",
+            workflow,
+            re.DOTALL | re.MULTILINE,
+        )
+        self.assertIsNotNone(python, "version extraction must use an executable Python heredoc")
+        assert python is not None
+        script = textwrap.dedent(python.group("body"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "github-output"
+            previous_output = os.environ.get("GITHUB_OUTPUT")
+            previous_cwd = Path.cwd()
+            try:
+                os.environ["GITHUB_OUTPUT"] = str(output_path)
+                os.chdir(ROOT)
+                exec(script, {"__name__": "__main__"})
+            finally:
+                os.chdir(previous_cwd)
+                if previous_output is None:
+                    os.environ.pop("GITHUB_OUTPUT", None)
+                else:
+                    os.environ["GITHUB_OUTPUT"] = previous_output
+
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.0\ntag=v0.1.0\n")
 
     def test_main_push_release_workflow_uses_the_skill_version_for_every_artifact(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")

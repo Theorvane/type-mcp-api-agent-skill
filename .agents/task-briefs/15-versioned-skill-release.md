@@ -57,4 +57,4 @@ A merged reviewed `dev` → `main` promotion creates a Git tag and GitHub Releas
 
 ## Review notes
 
-- Hermes v0.19.0 advertises `hermes skills publish --to clawhub`, but its implementation reports ClawHub publishing unsupported; release automation uses the official ClawHub CLI instead.
+- Independent review on `9634b8a` found that the GitHub Actions version-extraction heredoc referenced `os.environ` without importing `os`. A new execution regression test observed the resulting `NameError`; the workflow now imports `os`, and the 4-test focused suite passes.
