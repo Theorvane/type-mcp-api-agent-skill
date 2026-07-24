@@ -21,6 +21,7 @@ jobs:
           python3 .agents/scripts/test_validate_docs.py
           python3 .agents/scripts/test_workspace.py
           python3 .agents/scripts/test_validate_branch_governance.py
+          python3 .agents/scripts/test_skill_release.py
           python3 .agents/scripts/validate_docs.py
           python3 .agents/scripts/validate_branch_governance.py
           python3 .agents/scripts/validate_release_promotion.py

@@ -20,4 +20,7 @@
 
 - [ ] GitHub repository creation/push confirmation fields are documented and tested.
 - [ ] Release notes identify any new external side effect, policy behavior, or supported CLI compatibility range.
+- [ ] `skills/api-to-typemcp/SKILL.md` has an intentional SemVer version.
+- [ ] `CLAWHUB_TOKEN` is configured as a repository Actions secret and never appears in tracked files or logs.
+- [ ] GitHub tag, GitHub Release, and ClawHub entry use the identical skill version.
 - [ ] Remote `main` matches the intended release commit.
