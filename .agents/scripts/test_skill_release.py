@@ -3,16 +3,21 @@
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import os
 import re
 import tempfile
 import textwrap
 import unittest
+from email.message import Message
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "skills/api-to-typemcp/SKILL.md"
 WORKFLOW = ROOT / ".github/workflows/skill-release.yml"
+PUBLISHER = ROOT / ".agents/scripts/publish_skills_hub.py"
 SEMVER = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
     r"(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?"
@@ -136,17 +141,61 @@ class SkillReleaseTests(unittest.TestCase):
         body = job.group("body")
         self.assertIn("permissions:\n      contents: read", body)
         self.assertIn("SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}", body)
-        self.assertIn("Missing required repository secret SKILLS_HUB_AI_API_KEY", body)
-        self.assertIn("SKILLS_HUB_AI_API: https://api.skills-hub.ai/api/v1", body)
-        self.assertIn('"/skills"', body)
-        self.assertIn("/publish", body)
-        self.assertIn('"version": skill_version', body)
-        self.assertIn('"categorySlug": category', body)
+        self.assertTrue(PUBLISHER.is_file())
+        self.assertIn("Missing required repository secret SKILLS_HUB_AI_API_KEY", PUBLISHER.read_text(encoding="utf-8"))
+        self.assertIn("python3 .agents/scripts/publish_skills_hub.py", body)
         self.assertIn("persist-credentials: false", body)
 
         secret_gate = workflow.index("Missing required repository secret SKILLS_HUB_AI_API_KEY")
         release_mutation = workflow.index("gh release create")
         self.assertLess(secret_gate, release_mutation)
+
+    def test_skills_hub_publisher_uses_api_key_auth_and_reconciles_versions(self) -> None:
+        self.assertTrue(PUBLISHER.is_file(), "skills-hub.ai publisher must be an executable, tested script")
+        spec = importlib.util.spec_from_file_location("publish_skills_hub", PUBLISHER)
+        self.assertIsNotNone(spec)
+        assert spec is not None and spec.loader is not None
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+
+        self.assertEqual(publisher.auth_headers("test-key")["Authorization"], "ApiKey test-key")
+        self.assertEqual(publisher.retry_delay(429, "2", 0), 2.0)
+        self.assertGreater(publisher.retry_delay(503, None, 0), 0)
+        self.assertTrue(publisher.version_exists([{"version": "0.1.1"}], "0.1.1"))
+        self.assertFalse(publisher.version_exists([{"version": "0.1.0"}], "0.1.1"))
+        self.assertEqual(publisher.publication_state({"status": "PUBLISHED"}), "PUBLISHED")
+        self.assertEqual(publisher.publication_state({"status": "PENDING_REVIEW"}), "PENDING_REVIEW")
+
+    def test_skills_hub_publisher_retries_a_transient_http_failure(self) -> None:
+        spec = importlib.util.spec_from_file_location("publish_skills_hub", PUBLISHER)
+        assert spec is not None and spec.loader is not None
+        publisher = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(publisher)
+
+        headers = Message()
+        transient = publisher.HTTPError("https://example.invalid", 503, "unavailable", headers, None)
+
+        class Response:
+            status = 200
+
+            def read(self) -> bytes:
+                return b'{"status":"PUBLISHED"}'
+
+            def __enter__(self) -> "Response":
+                return self
+
+            def __exit__(self, *_: object) -> None:
+                return None
+
+        with patch.object(publisher, "urlopen", side_effect=[transient, Response()]) as urlopen, patch.object(
+            publisher.time, "sleep"
+        ) as sleep:
+            status, payload = publisher.request("https://example.invalid", "test-key", "/skills/test")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, {"status": "PUBLISHED"})
+        self.assertEqual(urlopen.call_count, 2)
+        sleep.assert_called_once()
 
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")

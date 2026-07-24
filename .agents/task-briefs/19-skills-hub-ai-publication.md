@@ -35,7 +35,7 @@ A reviewed `dev` → `main` promotion releases the same SemVer-tagged `api-to-ty
 - Source input: static repository `SKILL.md` frontmatter; version and category are validated before use.
 - Secrets: only GitHub Actions repository secrets; no values are committed, logged, or uploaded.
 - Side effects: GitHub release, ClawHub, and skills-hub.ai publication only on `main` push after reviewed promotion.
-- Compatibility: skills-hub.ai CLI 0.4.1 cannot be installed because its declared `@skills-hub-ai/installer@0.1.0` dependency is unavailable from npm. The workflow uses the registry’s documented HTTPS API directly instead.
+- Compatibility: `@skills-hub-ai/cli@0.4.1` cannot be installed because its declared `@skills-hub-ai/installer@0.1.0` dependency is unavailable from npm. Issue #19 records the reviewed decision to use a repository-tested direct client against the live OpenAPI 3.1 contract instead.
 
 ## Test-first evidence
 

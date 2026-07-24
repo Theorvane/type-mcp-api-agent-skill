@@ -29,7 +29,7 @@ Both credentials are required before release creation. They are only sent in HTT
 3. It reads and validates `skills/api-to-typemcp/SKILL.md` frontmatter `version`.
 4. It creates—or verifies the target of—the corresponding immutable GitHub Release.
 5. Only after GitHub Release success, it checks out the pinned official ClawHub CLI source and registers `skills/api-to-typemcp` with the same explicit version.
-6. In parallel with ClawHub registration, it uses the documented skills-hub.ai HTTPS API with the same version: it creates and publishes the public skill on its first release, then creates a version entry for later releases. The SKILL.md `category: integration` is validated by skills-hub.ai's public category endpoint.
+6. In parallel with ClawHub registration, it invokes the repository-tested skills-hub.ai publisher against the live OpenAPI 3.1 contract. The publisher authenticates with the API-key `Authorization: ApiKey <key>` scheme, retries transient transport/429/5xx failures with bounded backoff, reconciles existing immutable versions, and fails closed if the registry returns `PENDING_REVIEW` rather than `PUBLISHED`. The SKILL.md `category: integration` is validated by skills-hub.ai's public category endpoint.
 
 The workflow intentionally does not use `hermes skills publish --to clawhub`: Hermes v0.19.0 exposes that target but does not implement it. The pinned official ClawHub CLI supports explicit version publication, which prevents registry/GitHub version drift.
 
