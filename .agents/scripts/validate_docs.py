@@ -20,10 +20,10 @@ REQUIRED_FILES = (
     "docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md",
     "docs/planning/README.md",
     "skills/api-to-typemcp/SKILL.md",
-    ".agent/templates/task-brief.md",
-    ".agent/templates/review-report.md",
-    ".agent/checklists/pre-commit.md",
-    ".agent/checklists/release-readiness.md",
+    ".agents/templates/task-brief.md",
+    ".agents/templates/review-report.md",
+    ".agents/checklists/pre-commit.md",
+    ".agents/checklists/release-readiness.md",
 )
 
 
@@ -133,7 +133,7 @@ def main() -> int:
         "CLI boundary, not generator implementation",
         "Trusted CLI resolution",
         "Contained execution",
-        "No direct main changes",
+        "Protected branch flow after bootstrap",
     ):
         if required_phrase not in agents:
             print(f"AGENTS.md missing required operating rule: {required_phrase}")
