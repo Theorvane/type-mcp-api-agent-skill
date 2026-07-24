@@ -18,12 +18,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require ClawHub publication credential
+      - name: Require registry publication credentials
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+          SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}
         run: |
           test -n "$CLAWHUB_TOKEN" || {
             echo "::error::Missing required repository secret CLAWHUB_TOKEN."
+            exit 1
+          }
+          test -n "$SKILLS_HUB_AI_API_KEY" || {
+            echo "::error::Missing required repository secret SKILLS_HUB_AI_API_KEY."
             exit 1
           }
 
@@ -151,3 +156,116 @@ jobs:
             --source-commit "$GITHUB_SHA" \
             --source-ref main \
             --source-path skills/api-to-typemcp
+
+  publish-skills-hub-ai:
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SKILL_VERSION: ${{ needs.prepare.outputs.skill_version }}
+      SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}
+      SKILLS_HUB_AI_API: https://api.skills-hub.ai/api/v1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Register the released skill in skills-hub.ai
+        run: |
+          test -n "$SKILLS_HUB_AI_API_KEY" || {
+            echo "::error::Missing required repository secret SKILLS_HUB_AI_API_KEY."
+            exit 1
+          }
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          api = os.environ["SKILLS_HUB_AI_API"].rstrip("/")
+          token = os.environ["SKILLS_HUB_AI_API_KEY"]
+          content = Path("skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
+
+          def field(name: str) -> str:
+              match = re.search(rf"^{re.escape(name)}:\s*([^\n#]+?)\s*$", content, re.MULTILINE)
+              if match is None:
+                  raise SystemExit(f"SKILL.md frontmatter must declare {name}.")
+              return match.group(1).strip().strip('"')
+
+          name = field("name")
+          description = field("description")
+          skill_version = field("version")
+          category = field("category")
+          if skill_version != os.environ["SKILL_VERSION"]:
+              raise SystemExit("SKILL.md version does not match the release version.")
+
+          def request(path: str, method: str = "GET", payload: dict[str, object] | None = None) -> tuple[int, object | None]:
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
+              request = Request(
+                  f"{api}{path}",
+                  data=data,
+                  method=method,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json",
+                      "X-Skills-Hub-Client": "github-actions",
+                  },
+              )
+              try:
+                  with urlopen(request, timeout=30) as response:
+                      raw = response.read()
+                      return response.status, json.loads(raw) if raw else None
+              except HTTPError as error:
+                  raw = error.read()
+                  try:
+                      return error.code, json.loads(raw) if raw else None
+                  except json.JSONDecodeError:
+                      return error.code, None
+              except URLError as error:
+                  raise SystemExit(f"skills-hub.ai request failed: {error.reason}") from error
+
+          slug = name
+          status, existing = request(f"/skills/{slug}")
+          if status == 404:
+              status, created = request(
+                  "/skills",
+                  "POST",
+                  {
+                      "name": name,
+                      "description": description,
+                      "version": skill_version,
+                      "categorySlug": category,
+                      "platforms": ["CLAUDE_CODE"],
+                      "instructions": content.split("---", 2)[-1].strip(),
+                      "visibility": "PUBLIC",
+                      "tags": ["mcp", "api", "openapi", "swagger", "type-mcp"],
+                      "githubRepoUrl": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}",
+                  },
+              )
+              if status not in (200, 201) or not isinstance(created, dict) or not isinstance(created.get("slug"), str):
+                  raise SystemExit(f"skills-hub.ai skill creation failed (HTTP {status}).")
+              slug = created["slug"]
+              status, _ = request(f"/skills/{slug}/publish", "POST", {})
+              if status not in (200, 201, 204):
+                  raise SystemExit(f"skills-hub.ai skill publication failed (HTTP {status}).")
+          elif status == 200:
+              status, _ = request(
+                  f"/skills/{slug}/versions",
+                  "POST",
+                  {
+                      "version": skill_version,
+                      "instructions": content.split("---", 2)[-1].strip(),
+                      "changelog": f"Released from GitHub {os.environ['GITHUB_SHA']}.",
+                  },
+              )
+              if status not in (200, 201):
+                  raise SystemExit(f"skills-hub.ai version publication failed (HTTP {status}).")
+          else:
+              raise SystemExit(f"skills-hub.ai skill lookup failed (HTTP {status}).")
+
+          print(f"Published {slug} v{skill_version} to skills-hub.ai.")
+          PY

@@ -60,7 +60,7 @@ class SkillReleaseTests(unittest.TestCase):
                 else:
                     os.environ["GITHUB_OUTPUT"] = previous_output
 
-            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.0\ntag=v0.1.0\n")
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.1\ntag=v0.1.1\n")
 
     def test_version_extraction_step_rejects_invalid_numeric_prerelease_identifiers(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -80,7 +80,7 @@ class SkillReleaseTests(unittest.TestCase):
                 skill_path = root / "skills/api-to-typemcp/SKILL.md"
                 skill_path.parent.mkdir(parents=True)
                 skill_path.write_text(
-                    original.replace("version: 0.1.0", f"version: {invalid_version}"),
+                    original.replace("version: 0.1.1", f"version: {invalid_version}"),
                     encoding="utf-8",
                 )
                 previous_cwd = Path.cwd()
@@ -118,12 +118,46 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertLess(token_check, release_mutation)
         self.assertIn("secrets.CLAWHUB_TOKEN", workflow)
 
+    def test_skills_hub_ai_publication_is_gated_and_uses_the_released_version(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        content = SKILL.read_text(encoding="utf-8")
+
+        self.assertIsNotNone(
+            re.search(r"^category:\s*integration\s*$", content, re.MULTILINE),
+            "skills-hub.ai requires an approved category",
+        )
+        job = re.search(
+            r"^  publish-skills-hub-ai:\n(?P<body>.*?)(?=^  \w|\Z)",
+            workflow,
+            re.DOTALL | re.MULTILINE,
+        )
+        self.assertIsNotNone(job, "release workflow must publish skills-hub.ai")
+        assert job is not None
+        body = job.group("body")
+        self.assertIn("permissions:\n      contents: read", body)
+        self.assertIn("SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}", body)
+        self.assertIn("Missing required repository secret SKILLS_HUB_AI_API_KEY", body)
+        self.assertIn("SKILLS_HUB_AI_API: https://api.skills-hub.ai/api/v1", body)
+        self.assertIn('"/skills"', body)
+        self.assertIn("/publish", body)
+        self.assertIn('"version": skill_version', body)
+        self.assertIn('"categorySlug": category', body)
+        self.assertIn("persist-credentials: false", body)
+
+        secret_gate = workflow.index("Missing required repository secret SKILLS_HUB_AI_API_KEY")
+        release_mutation = workflow.index("gh release create")
+        self.assertLess(secret_gate, release_mutation)
+
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         self.assertNotIn("permissions:\n  contents: write", workflow)
         release = re.search(r"^  release:\n(?P<body>.*?)(?=^  \w|\Z)", workflow, re.DOTALL | re.MULTILINE)
-        publish = re.search(r"^  publish-clawhub:\n(?P<body>.*)", workflow, re.DOTALL | re.MULTILINE)
+        publish = re.search(
+            r"^  publish-clawhub:\n(?P<body>.*?)(?=^  \w|\Z)",
+            workflow,
+            re.DOTALL | re.MULTILINE,
+        )
         self.assertIsNotNone(release)
         self.assertIsNotNone(publish)
         assert release is not None and publish is not None
