@@ -63,5 +63,6 @@ npm --prefix packages/type-mcp-api-cli audit --omit=dev --audit-level=high
 - Trusted CLI compatibility source of truth: `docs/guides/cli-compatibility.md`
 - CLI implementation contract: `packages/type-mcp-api-cli/docs/api/cli-contract.md`
 - Skill instructions: `skills/api-to-typemcp/SKILL.md`
+- Skill release and registry publication: `docs/guides/skill-release.md`
 
 Read `AGENTS.md` before changing either root orchestration or the CLI package. Do not represent planned CLI or generation behavior as implemented behavior.
