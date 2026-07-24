@@ -13,7 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "skills/api-to-typemcp/SKILL.md"
 WORKFLOW = ROOT / ".github/workflows/skill-release.yml"
-SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$")
+SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
 
 
 class SkillReleaseTests(unittest.TestCase):
@@ -57,6 +61,41 @@ class SkillReleaseTests(unittest.TestCase):
                     os.environ["GITHUB_OUTPUT"] = previous_output
 
             self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.0\ntag=v0.1.0\n")
+
+    def test_version_extraction_step_rejects_invalid_numeric_prerelease_identifiers(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        python = re.search(
+            r"python3 - <<'PY'\n(?P<body>.*?)^\s{10}PY$",
+            workflow,
+            re.DOTALL | re.MULTILINE,
+        )
+        self.assertIsNotNone(python, "version extraction must use an executable Python heredoc")
+        assert python is not None
+        script = textwrap.dedent(python.group("body"))
+        original = SKILL.read_text(encoding="utf-8")
+
+        for invalid_version in ("0.1.0-01", "0.1.0-alpha.01"):
+            with self.subTest(version=invalid_version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                skill_path = root / "skills/api-to-typemcp/SKILL.md"
+                skill_path.parent.mkdir(parents=True)
+                skill_path.write_text(
+                    original.replace("version: 0.1.0", f"version: {invalid_version}"),
+                    encoding="utf-8",
+                )
+                previous_cwd = Path.cwd()
+                previous_output = os.environ.get("GITHUB_OUTPUT")
+                try:
+                    os.environ["GITHUB_OUTPUT"] = str(root / "github-output")
+                    os.chdir(root)
+                    with self.assertRaises(SystemExit):
+                        exec(script, {"__name__": "__main__"})
+                finally:
+                    os.chdir(previous_cwd)
+                    if previous_output is None:
+                        os.environ.pop("GITHUB_OUTPUT", None)
+                    else:
+                        os.environ["GITHUB_OUTPUT"] = previous_output
 
     def test_main_push_release_workflow_uses_the_skill_version_for_every_artifact(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
