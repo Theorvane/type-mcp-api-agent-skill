@@ -18,12 +18,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require ClawHub publication credential
+      - name: Require registry publication credentials
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+          SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}
         run: |
           test -n "$CLAWHUB_TOKEN" || {
             echo "::error::Missing required repository secret CLAWHUB_TOKEN."
+            exit 1
+          }
+          test -n "$SKILLS_HUB_AI_API_KEY" || {
+            echo "::error::Missing required repository secret SKILLS_HUB_AI_API_KEY."
             exit 1
           }
 
@@ -151,3 +156,21 @@ jobs:
             --source-commit "$GITHUB_SHA" \
             --source-ref main \
             --source-path skills/api-to-typemcp
+
+  publish-skills-hub-ai:
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SKILL_VERSION: ${{ needs.prepare.outputs.skill_version }}
+      SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}
+      SKILLS_HUB_AI_API: https://api.skills-hub.ai/api/v1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Register the released skill in skills-hub.ai
+        run: python3 .agents/scripts/publish_skills_hub.py
