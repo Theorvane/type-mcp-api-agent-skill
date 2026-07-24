@@ -21,6 +21,7 @@ def auth_headers(api_key: str) -> dict[str, str]:
     return {
         "Authorization": f"ApiKey {api_key}",
         "Content-Type": "application/json",
+        "User-Agent": "type-mcp-api-agent-skill/0.1",
         "X-Skills-Hub-Client": "github-actions",
     }
 
@@ -71,7 +72,11 @@ def request(
     public: bool = False,
 ) -> tuple[int, object | None]:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
-    headers = {"Content-Type": "application/json", "X-Skills-Hub-Client": "github-actions"}
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "type-mcp-api-agent-skill/0.1",
+        "X-Skills-Hub-Client": "github-actions",
+    }
     if not public:
         headers = auth_headers(token)
     for attempt in range(MAX_ATTEMPTS):

@@ -65,7 +65,7 @@ class SkillReleaseTests(unittest.TestCase):
                 else:
                     os.environ["GITHUB_OUTPUT"] = previous_output
 
-            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.2\ntag=v0.1.2\n")
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.3\ntag=v0.1.3\n")
 
     def test_version_extraction_step_rejects_invalid_numeric_prerelease_identifiers(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -85,7 +85,7 @@ class SkillReleaseTests(unittest.TestCase):
                 skill_path = root / "skills/api-to-typemcp/SKILL.md"
                 skill_path.parent.mkdir(parents=True)
                 skill_path.write_text(
-                    original.replace("version: 0.1.2", f"version: {invalid_version}"),
+                    original.replace("version: 0.1.3", f"version: {invalid_version}"),
                     encoding="utf-8",
                 )
                 previous_cwd = Path.cwd()
@@ -159,13 +159,14 @@ class SkillReleaseTests(unittest.TestCase):
         spec.loader.exec_module(publisher)
 
         self.assertEqual(publisher.auth_headers("test-key")["Authorization"], "ApiKey test-key")
+        self.assertEqual(publisher.auth_headers("test-key")["User-Agent"], "type-mcp-api-agent-skill/0.1")
         self.assertEqual(publisher.retry_delay(429, "2", 0), 2.0)
         self.assertEqual(publisher.retry_delay(429, "60", 0), 10.0)
         self.assertGreater(publisher.retry_delay(503, None, 0), 0)
         self.assertTrue(publisher.category_exists({"data": [{"slug": "integration"}]}, "integration"))
         self.assertFalse(publisher.category_exists({"data": [{"slug": "security"}]}, "integration"))
-        self.assertTrue(publisher.version_exists([{"version": "0.1.2"}], "0.1.2"))
-        self.assertFalse(publisher.version_exists([{"version": "0.1.0"}], "0.1.2"))
+        self.assertTrue(publisher.version_exists([{"version": "0.1.3"}], "0.1.3"))
+        self.assertFalse(publisher.version_exists([{"version": "0.1.0"}], "0.1.3"))
         self.assertEqual(publisher.publication_state({"status": "PUBLISHED"}), "PUBLISHED")
         self.assertEqual(publisher.publication_state({"status": "PENDING_REVIEW"}), "PENDING_REVIEW")
 
@@ -197,6 +198,7 @@ class SkillReleaseTests(unittest.TestCase):
         request = urlopen.call_args.args[0]
         self.assertIsNone(request.get_header("Authorization"))
         self.assertEqual(request.get_header("X-skills-hub-client"), "github-actions")
+        self.assertEqual(request.get_header("User-agent"), "type-mcp-api-agent-skill/0.1")
 
     def test_skills_hub_publisher_retries_a_transient_http_failure(self) -> None:
         spec = importlib.util.spec_from_file_location("publish_skills_hub", PUBLISHER)
@@ -239,9 +241,9 @@ class SkillReleaseTests(unittest.TestCase):
             [
                 (200, {"data": [{"slug": "integration"}]}),
                 (200, {"slug": "api-to-typemcp", "status": "DRAFT"}),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.2"}),
-                (200, [{"version": "0.1.2"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.2"}),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.3"}),
+                (200, [{"version": "0.1.3"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.3"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -254,7 +256,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.1.2",
+            "SKILL_VERSION": "0.1.3",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
@@ -276,8 +278,8 @@ class SkillReleaseTests(unittest.TestCase):
                 (200, {"slug": "api-to-typemcp", "status": "PUBLISHED"}),
                 (200, []),
                 (409, {"error": "version already exists"}),
-                (200, [{"version": "0.1.2"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.2"}),
+                (200, [{"version": "0.1.3"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.3"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -290,7 +292,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.1.2",
+            "SKILL_VERSION": "0.1.3",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
