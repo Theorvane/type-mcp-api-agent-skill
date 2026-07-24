@@ -160,7 +160,10 @@ class SkillReleaseTests(unittest.TestCase):
 
         self.assertEqual(publisher.auth_headers("test-key")["Authorization"], "ApiKey test-key")
         self.assertEqual(publisher.retry_delay(429, "2", 0), 2.0)
+        self.assertEqual(publisher.retry_delay(429, "60", 0), 10.0)
         self.assertGreater(publisher.retry_delay(503, None, 0), 0)
+        self.assertTrue(publisher.category_exists({"data": [{"slug": "integration"}]}, "integration"))
+        self.assertFalse(publisher.category_exists({"data": [{"slug": "security"}]}, "integration"))
         self.assertTrue(publisher.version_exists([{"version": "0.1.1"}], "0.1.1"))
         self.assertFalse(publisher.version_exists([{"version": "0.1.0"}], "0.1.1"))
         self.assertEqual(publisher.publication_state({"status": "PUBLISHED"}), "PUBLISHED")

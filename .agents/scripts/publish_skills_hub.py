@@ -28,10 +28,10 @@ def auth_headers(api_key: str) -> dict[str, str]:
 def retry_delay(status: int, retry_after: str | None, attempt: int) -> float:
     if status == 429 and retry_after is not None:
         try:
-            return max(0.0, float(retry_after))
+            return min(10.0, max(0.0, float(retry_after)))
         except ValueError:
             pass
-    return float(2**attempt)
+    return min(10.0, float(2**attempt))
 
 
 def version_exists(versions: object, version: str) -> bool:
@@ -42,6 +42,16 @@ def version_exists(versions: object, version: str) -> bool:
 
 def publication_state(payload: object) -> str:
     return payload.get("status", "UNKNOWN") if isinstance(payload, dict) else "UNKNOWN"
+
+
+def category_exists(payload: object, category: str) -> bool:
+    if isinstance(payload, list):
+        return any(category_exists(item, category) for item in payload)
+    if isinstance(payload, dict):
+        if payload.get("slug") == category:
+            return True
+        return any(category_exists(value, category) for value in payload.values())
+    return False
 
 
 def field(content: str, name: str) -> str:
@@ -57,6 +67,7 @@ def request(
     path: str,
     method: str = "GET",
     payload: dict[str, Any] | None = None,
+    retry: bool = True,
 ) -> tuple[int, object | None]:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     for attempt in range(MAX_ATTEMPTS):
@@ -76,11 +87,11 @@ def request(
                 body: object | None = json.loads(raw) if raw else None
             except json.JSONDecodeError:
                 body = None
-            if error.code not in RETRYABLE_STATUSES or attempt == MAX_ATTEMPTS - 1:
+            if not retry or error.code not in RETRYABLE_STATUSES or attempt == MAX_ATTEMPTS - 1:
                 return error.code, body
             time.sleep(retry_delay(error.code, error.headers.get("Retry-After"), attempt))
         except URLError as error:
-            if attempt == MAX_ATTEMPTS - 1:
+            if not retry or attempt == MAX_ATTEMPTS - 1:
                 raise SystemExit(f"skills-hub.ai request failed: {error.reason}") from error
             time.sleep(retry_delay(503, None, attempt))
     raise AssertionError("retry loop exhausted without returning")
@@ -108,6 +119,10 @@ def publish() -> None:
     if version != os.environ.get("SKILL_VERSION"):
         raise SystemExit("SKILL.md version does not match the release version.")
 
+    status, categories = request(api, token, "/categories/")
+    if status != 200 or not category_exists(categories, category):
+        raise SystemExit("skills-hub.ai does not recognize the SKILL.md category.")
+
     status, skill = request(api, token, f"/skills/{name}")
     if status == 404:
         status, created = request(
@@ -126,11 +141,16 @@ def publish() -> None:
                 "tags": ["mcp", "api", "openapi", "swagger", "type-mcp"],
                 "githubRepoUrl": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}",
             },
+            retry=False,
         )
+        if status in RETRYABLE_STATUSES:
+            status, created = request(api, token, f"/skills/{name}")
         if status not in (200, 201) or not isinstance(created, dict) or not isinstance(created.get("slug"), str):
             raise SystemExit(f"skills-hub.ai skill creation failed (HTTP {status}).")
         name = created["slug"]
-        status, published = request(api, token, f"/skills/{name}/publish", "POST", {})
+        status, published = request(api, token, f"/skills/{name}/publish", "POST", {}, retry=False)
+        if status in RETRYABLE_STATUSES:
+            status, published = request(api, token, f"/skills/{name}")
         if status not in (200, 201):
             raise SystemExit(f"skills-hub.ai skill publication failed (HTTP {status}).")
         require_published(published, version)
@@ -149,7 +169,12 @@ def publish() -> None:
                     "instructions": content.split("---", 2)[-1].strip(),
                     "changelog": f"Released from GitHub {os.environ['GITHUB_SHA']}.",
                 },
+                retry=False,
             )
+            if status in RETRYABLE_STATUSES:
+                status, recovered_versions = request(api, token, f"/skills/{name}/versions")
+                if status == 200 and version_exists(recovered_versions, version):
+                    status = 200
             if status not in (200, 201):
                 raise SystemExit(f"skills-hub.ai version publication failed (HTTP {status}).")
     else:
