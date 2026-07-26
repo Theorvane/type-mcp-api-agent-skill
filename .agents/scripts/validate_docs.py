@@ -88,6 +88,9 @@ def main() -> int:
             "workspace repository",
             "packages/type-mcp-api-cli",
             "not published from this repository yet",
+            "https://clawhub.ai/sjungwon03/api-to-typemcp",
+            "https://skills-hub.ai/skills/api-to-typemcp",
+            "https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.3",
         ),
     }
     for relative_path, required_phrases in contract_files.items():

@@ -17,6 +17,11 @@ PUBLICATION_CONFIRMATION = (
 REF_VERIFICATION = "actual checked-out/ref-to-publish branch"
 REF_EQUALITY_STOP = "stop unless it exactly equals the recorded source branch"
 BRANCH_GOVERNANCE = "Protected branch flow after bootstrap"
+DISTRIBUTION_LINKS = (
+    "https://clawhub.ai/sjungwon03/api-to-typemcp",
+    "https://skills-hub.ai/skills/api-to-typemcp",
+    "https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.3",
+)
 
 
 class PublicationContractValidatorTests(unittest.TestCase):
@@ -76,6 +81,10 @@ class PublicationContractValidatorTests(unittest.TestCase):
 
     def test_agents_rejects_missing_branch_governance(self) -> None:
         self.assert_validator_fails_after_removal("AGENTS.md", BRANCH_GOVERNANCE)
+
+    def test_readme_requires_each_public_distribution_link(self) -> None:
+        for link in DISTRIBUTION_LINKS:
+            self.assert_validator_fails_after_removal("README.md", link)
 
 
 if __name__ == "__main__":
