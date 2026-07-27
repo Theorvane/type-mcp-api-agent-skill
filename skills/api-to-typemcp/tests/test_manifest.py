@@ -43,7 +43,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(first["version"], 1)
         self.assertEqual(first["protocol"], "http")
         self.assertEqual(first["source"]["kind"], "openapi")
-        self.assertEqual(first["source"]["descriptor"], "petstore.openapi.json")
+        self.assertEqual(first["source"]["descriptor"], "local-structured-spec")
         self.assertEqual(first["baseUrl"], "https://api.example.test/v1")
         self.assertEqual(
             first["digest"],
@@ -123,7 +123,7 @@ class ManifestTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("descriptor-secret", result.stdout)
-        self.assertEqual(json.loads(result.stdout)["source"]["descriptor"], "spec")
+        self.assertEqual(json.loads(result.stdout)["source"]["descriptor"], "local-structured-spec")
 
     def test_required_must_be_boolean(self) -> None:
         document = {

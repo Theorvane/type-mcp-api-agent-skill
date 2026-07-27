@@ -85,10 +85,10 @@ def _swagger_base_url(document: dict[str, Any]) -> str:
 
 
 def _safe_descriptor(raw: object) -> str:
-    """Return a display-safe local filename without path, query, or fragment data."""
+    """Return a constant provenance label so local filenames never reach artifacts."""
     if not isinstance(raw, str):
         raise StructuredSpecError("source descriptor is invalid")
-    descriptor = raw.split("?", 1)[0].split("#", 1)[0]
+    descriptor = "local-structured-spec"
     if not descriptor or "/" in descriptor or "\\" in descriptor:
         raise StructuredSpecError("source descriptor is invalid")
     return descriptor
