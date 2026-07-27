@@ -2,14 +2,15 @@
 
 Implementation plans are canonical, issue-scoped documents. Store them as `YYYY-MM-DD-issue-<number>-<topic>.md`.
 
-Every plan must link its issue, list exact files/commands, define acceptance/error/exclusion cases, describe a focused TDD cycle for each behavior, and identify documentation changes.
+Every plan must link its issue, list exact files and commands, define acceptance/error/exclusion cases, describe a focused TDD cycle for each behavior, and identify documentation changes.
 
-## Cross-repository planning rule
+## Embedded-engine planning rule
 
-Plans must identify their target boundary (`root skill/docs` or `packages/type-mcp-api-cli`) and may not smuggle CLI behavior into root skill code or skill orchestration behavior into the CLI package.
+Plans target the published `skills/api-to-typemcp/` **bundled skill engine** and must preserve its single shipping boundary:
 
-- CLI engine, parsers, templates, manifest schema production, and source rendering live in `packages/type-mcp-api-cli`.
-- Hermes UX, CLI compatibility, approvals, independent verification, and confirmed publication live at the repository root.
-- Any shared protocol change needs a linked issue/plan identifying both root and CLI-package impact, plus a version/fixture compatibility test.
+- Engine modules, parsers, manifest state, policy, templates, and generated-project verification live beneath `skills/api-to-typemcp/`.
+- Generated projects use published `@theorvane/type-mcp`; plans must prohibit local/file/git TypeMCP dependencies and source copying.
+- Plans must keep manifest-first review, bounded source intake, secret hygiene, protected-write authorization before request construction, contained verification, and final publication confirmation.
+- New engine behavior requires a linked issue/plan, a focused observed failing test, and release-artifact coverage when files are added.
 
-No implementation starts without a plan derived from `docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md`.
+No implementation starts without a plan derived from `docs/superpowers/specs/2026-07-28-embedded-typemcp-generator-design.md`.

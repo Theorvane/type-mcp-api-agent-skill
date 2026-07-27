@@ -1,44 +1,29 @@
 # Product vision
 
-**Status:** Approved product target; root skill contract and a local-only CLI bootstrap are implemented.
+**Status:** Approved embedded-engine target; implementation is staged.
 
 ## Problem
 
-Creating an MCP server for an external API repeatedly requires developers to understand heterogeneous documentation, translate request shapes into tool schemas, handle credentials safely, enforce write policies, and validate a runnable server. Existing API descriptions are not limited to OpenAPI: teams often provide Swagger UI pages, Markdown guides, or HTML reference sites.
-
-Different users also need different interfaces: a CI pipeline needs a deterministic CLI, while a Hermes user needs source discovery, evidence review, manifest approval, and publication safeguards.
+Creating a trustworthy MCP server for an external API requires interpreting heterogeneous documentation, translating request shapes into tool schemas, keeping credentials external, controlling writes, and validating a runnable server. Teams supply OpenAPI, Swagger UI, Markdown, and HTML references—not only one schema format.
 
 ## Product statement
 
-The product is deliberately split into two independently usable **packages within one workspace repository**:
-
-| Boundary | Product role |
-| --- | --- |
-| `packages/type-mcp-api-cli` | Deterministic API-source intake, manifest normalization, diagnostics, and TypeMCP project-rendering CLI |
-| root `skills/api-to-typemcp` | Hermes skill that invokes the CLI package and manages approval, safety, verification, and confirmed GitHub publication |
-
-The CLI is useful directly in a terminal or CI. The skill is useful when a user wants a guided and reviewable workflow. Both paths generate normal TypeScript MCP projects that install `type-mcp` from npm.
-
-## Primary users
-
-1. Developers who want a maintainable MCP facade for a third-party or internal HTTP API.
-2. Platform teams that need reviewable generated code, explicit auth mappings, and runtime endpoint policy in CI.
-3. Hermes users who want conversational source intake and safety/approval gates without reimplementing CLI behavior.
+`api-to-typemcp` is a versioned Hermes skill that ships one **bundled skill engine**. The engine owns deterministic intake, manifest normalization, approval state, policy derivation, rendering, and contained generated-project verification. It renders standalone TypeScript MCP projects using the published `@theorvane/type-mcp` npm dependency; it never copies TypeMCP source into output.
 
 ## User outcomes
 
-- A developer can invoke the CLI with an OpenAPI/Swagger file or URL, Swagger UI URL, or Markdown/HTML API document URL.
-- A Hermes user can invoke the skill, which calls the same CLI and presents a normalized, evidence-backed manifest.
-- After approval where required, the CLI generates every approved endpoint as a TypeMCP tool.
-- The generated server runs against the installed npm `type-mcp` package and exposes runtime controls for endpoint execution.
-- The skill can verify the output and, after explicit final confirmation, create and push a newly named GitHub repository.
+- A user supplies an OpenAPI/Swagger source, supplied Swagger UI page, or supplied Markdown/HTML document.
+- The bundled skill engine presents a secret-free, evidence-backed manifest before generation.
+- After the required approval and output-target confirmation, it renders every approved endpoint as a TypeMCP tool.
+- The generated server uses published `@theorvane/type-mcp`, exposes an exact-ID protected-write gate, and is verified in containment.
+- Only after explicit final confirmation can the skill create or push an output repository.
 
 ## Product principles
 
-- **One deterministic engine, two entry points.** CLI and skill share a published contract rather than duplicate parsing/generation logic.
-- **Manifest first.** Human-readable evidence and endpoint policy precede code generation.
-- **Generated code is owned code.** Output is a normal TypeScript project, reviewable and editable after generation.
-- **The npm package is the runtime dependency.** The CLI does not vendor `type-mcp` source.
-- **All approved operations are visible.** Policy gates control execution rather than hiding supported endpoints.
+- **One shipping unit.** The released skill includes the engine, templates, and references required for generation.
+- **Manifest first.** Reviewable evidence and endpoint policy precede source output.
+- **Generated code is owned code.** Output is a normal editable TypeScript project.
+- **Published runtime dependency.** Generated output depends on `@theorvane/type-mcp`, never a local checkout or copied implementation.
+- **All approved operations are visible.** Runtime policy gates execution rather than silently omitting endpoints.
 - **Credentials stay external.** Runtime environment mappings describe secrets without containing them.
-- **Ambiguity is explicit.** Document extraction records confidence and evidence; it cannot silently invent an API contract.
+- **Ambiguity is explicit.** Bounded document extraction records evidence and confidence; it cannot invent an API contract.
