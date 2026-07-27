@@ -17,9 +17,11 @@ This document is the canonical source of truth for whether `api-to-typemcp` may 
 
 Until this table is changed in a reviewed release, the skill may inspect a user-provided source only as documentation; it must not run a candidate CLI, install a package, generate a project, execute generated code, or publish output.
 
+The skill itself can still be installed and used for orchestration guidance during this pre-release state. Its user-facing outcome must make clear that project generation is intentionally blocked, no CLI was installed or executed, and the compatibility policy is the release gate.
+
 ## Enabling a CLI release
 
-A CLI release becomes supported only through one focused cross-repository change that updates this table with all of:
+Update the compatibility table only after a reviewed CLI npm release exists and its release evidence is available. A CLI release becomes supported only through one focused cross-repository change that updates this table with all of:
 
 1. Exact npm package name and a bounded semver range, preferably an exact version for the first release.
 2. Allowed CLI protocol and manifest schema versions.

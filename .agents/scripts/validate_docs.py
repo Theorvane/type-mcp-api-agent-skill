@@ -47,6 +47,8 @@ def main() -> int:
     link_pattern = re.compile(r"\[[^\]]+\]\(([^)#]+\.md)(?:#[^)]+)?\)")
     for path in markdown_files:
         for target in link_pattern.findall(path.read_text(encoding="utf-8")):
+            if target.startswith(("https://", "http://")):
+                continue
             if not (path.parent / target).resolve().is_file():
                 missing_links.append(f"{path.relative_to(ROOT)} -> {target}")
     if missing_links:
@@ -75,6 +77,9 @@ def main() -> int:
         ),
         "docs/guides/cli-compatibility.md": (
             "no CLI release is supported yet",
+            "it must not run a candidate CLI, install a package, generate a project, execute generated code, or publish output",
+            "The skill itself can still be installed and used for orchestration guidance",
+            "Update the compatibility table only after a reviewed CLI npm release exists",
             "Trusted resolution flow",
             "npm registry dist integrity",
             "PATH` lookup alone is prohibited",
@@ -124,6 +129,9 @@ def main() -> int:
         "name: api-to-typemcp",
         "type-mcp-api-cli",
         "manifest approval",
+        "The skill is installed and its orchestration guidance is available",
+        "Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed",
+        "https://github.com/Theorvane/type-mcp-api-agent-skill/blob/dev/docs/guides/cli-compatibility.md",
         "actual checked-out/ref-to-publish branch",
     ):
         if required_phrase not in skill:
