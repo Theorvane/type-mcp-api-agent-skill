@@ -75,6 +75,8 @@ def main() -> int:
         ),
         "docs/guides/cli-compatibility.md": (
             "no CLI release is supported yet",
+            "The skill itself can still be installed and used for orchestration guidance",
+            "Update the compatibility table only after a reviewed CLI npm release exists",
             "Trusted resolution flow",
             "npm registry dist integrity",
             "PATH` lookup alone is prohibited",
@@ -124,6 +126,8 @@ def main() -> int:
         "name: api-to-typemcp",
         "type-mcp-api-cli",
         "manifest approval",
+        "The skill is installed and its orchestration guidance is available",
+        "Update [`docs/guides/cli-compatibility.md`](../../docs/guides/cli-compatibility.md) after a reviewed CLI npm release is available",
         "actual checked-out/ref-to-publish branch",
     ):
         if required_phrase not in skill:

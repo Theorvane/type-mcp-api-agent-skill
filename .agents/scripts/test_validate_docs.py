@@ -22,6 +22,8 @@ DISTRIBUTION_LINKS = (
     "https://skills-hub.ai/skills/api-to-typemcp",
     "https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.3",
 )
+PRE_RELEASE_CLI_GUIDANCE = "The skill is installed and its orchestration guidance is available"
+RELEASE_UNBLOCK_GUIDANCE = "Update the compatibility table only after a reviewed CLI npm release exists"
 
 
 class PublicationContractValidatorTests(unittest.TestCase):
@@ -85,6 +87,16 @@ class PublicationContractValidatorTests(unittest.TestCase):
     def test_readme_requires_each_public_distribution_link(self) -> None:
         for link in DISTRIBUTION_LINKS:
             self.assert_validator_fails_after_removal("README.md", link)
+
+    def test_skill_rejects_missing_pre_release_cli_guidance(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "skills/api-to-typemcp/SKILL.md", PRE_RELEASE_CLI_GUIDANCE
+        )
+
+    def test_compatibility_policy_rejects_missing_release_unblock_guidance(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "docs/guides/cli-compatibility.md", RELEASE_UNBLOCK_GUIDANCE
+        )
 
 
 if __name__ == "__main__":

@@ -18,6 +18,16 @@ This skill orchestrates the independently versioned `packages/type-mcp-api-cli` 
 
 The target is a normal standalone TypeScript MCP repository whose runtime dependency is npm `type-mcp`.
 
+## Current availability
+
+The skill is installed and its orchestration guidance is available, even while no compatible CLI release is supported. It can explain the required source, manifest-approval, safety, verification, and publication workflow; it must **not** install or execute a candidate CLI, generate a project, run generated code, or publish output until the compatibility policy explicitly enables a release.
+
+When a user requests generation while the policy lists no supported release, give this safe outcome:
+
+> `api-to-typemcp` is installed, but no supported `type-mcp-api-cli` release is available yet. Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed. Update [`docs/guides/cli-compatibility.md`](../../docs/guides/cli-compatibility.md) after a reviewed CLI npm release is available, then retry.
+
+Do not replace the CLI with an in-workspace, global, `PATH`, or user-provided executable. The CLI release policy—not skill installation—controls whether generation may begin.
+
 ## When to use
 
 Use this skill when the user provides or asks to use:
