@@ -18,17 +18,40 @@ _METHOD_ORDER = ("get", "head", "options", "post", "put", "patch", "delete")
 _OPERATION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
 _PATH_TEMPLATE = re.compile(r"^/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*(?:/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*)*$")
 _JSON_TYPES = frozenset({"string", "number", "integer", "boolean", "array", "object"})
+_MAX_STRUCTURE_DEPTH = 64
+_MAX_STRUCTURE_NODES = 10_000
 
 
-def _reject_references(value: Any) -> None:
+def _validate_untrusted_structure(value: Any, *, seen: set[int] | None = None, depth: int = 0, nodes: list[int] | None = None) -> None:
+    """Bound an untrusted parsed tree before normalization or deterministic sorting.
+
+    PyYAML aliases may share Python objects or form recursive graphs. Identity
+    tracking prevents alias fan-out from being repeatedly traversed, while depth
+    and node caps fail closed for structurally oversized documents.
+    """
+    if depth > _MAX_STRUCTURE_DEPTH:
+        raise StructuredSpecError("specification nesting exceeds the safe limit")
+    if not isinstance(value, (dict, list)):
+        return
+    seen = set() if seen is None else seen
+    nodes = [0] if nodes is None else nodes
+    identity = id(value)
+    if identity in seen:
+        return
+    seen.add(identity)
+    nodes[0] += 1
+    if nodes[0] > _MAX_STRUCTURE_NODES:
+        raise StructuredSpecError("specification structure exceeds the safe limit")
     if isinstance(value, dict):
-        if "$ref" in value:
-            raise StructuredSpecError("$ref is not supported for local normalization")
-        for nested in value.values():
-            _reject_references(nested)
-    elif isinstance(value, list):
+        for key, nested in value.items():
+            if not isinstance(key, str):
+                raise StructuredSpecError("specification object keys must be strings")
+            if key == "$ref":
+                raise StructuredSpecError("$ref is not supported for local normalization")
+            _validate_untrusted_structure(nested, seen=seen, depth=depth + 1, nodes=nodes)
+    else:
         for nested in value:
-            _reject_references(nested)
+            _validate_untrusted_structure(nested, seen=seen, depth=depth + 1, nodes=nodes)
 
 
 def _safe_base_url(raw: object) -> str:
@@ -135,7 +158,7 @@ def _responses(values: object) -> list[dict[str, str]]:
 
 def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
     """Validate and normalize one OpenAPI 3.x or Swagger 2.0 document."""
-    _reject_references(document)
+    _validate_untrusted_structure(document)
     if isinstance(document.get("openapi"), str) and document["openapi"].startswith("3."):
         kind, swagger = "openapi", False
         servers = document.get("servers", [])

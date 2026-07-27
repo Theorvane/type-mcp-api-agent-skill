@@ -45,13 +45,42 @@ class EngineCliTests(unittest.TestCase):
                 '{"openapi":"3.0.0","servers":[{"url":"https://api.example.test:bad"}],"paths":{}}',
                 encoding="utf-8",
             )
+            mixed_yaml_keys = Path(directory) / "mixed-keys.yaml"
+            mixed_yaml_keys.write_text(
+                "openapi: '3.0.0'\nservers:\n  - url: https://api.example.test\npaths:\n  /pets: {}\n  1: {}\n",
+                encoding="utf-8",
+            )
 
-            for path in (malformed, unsupported, malformed_base_url):
+            for path in (malformed, unsupported, malformed_base_url, mixed_yaml_keys):
                 result = run_engine("inspect", "--file", str(path), "--json")
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(result.stdout, "")
                 self.assertIn("error:", result.stderr)
                 self.assertNotIn("Traceback", result.stderr)
+
+    def test_yaml_alias_fanout_is_bounded_without_traceback(self) -> None:
+        aliases = ["a: &a ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x']"]
+        previous = "a"
+        for index in range(1, 8):
+            name = f"a{index}"
+            aliases.append(f"{name}: &{name} [{', '.join(f'*{previous}' for _ in range(10))}]")
+            previous = name
+        document = "openapi: '3.0.0'\nservers:\n  - url: https://api.example.test\npaths:\n  /pets: {}\n" + "\n".join(aliases)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "aliases.yaml"
+            path.write_text(document, encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "inspect", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=2,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("error:", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_yaml_requires_the_bundled_python_dependency_without_traceback(self) -> None:
         result = subprocess.run(

@@ -63,6 +63,8 @@ Task 1 deliberately does **not** add `scripts/api_to_typemcp.py`, engine behavio
 | Regression (Task 2) | `python3 .agents/scripts/test_workspace.py` | Observed exit 0: 3 tests passed after updating the structural assertion to require the Task 2 engine entry point/modules while deferring Task 4 templates. |
 | Red (Task 2 security hardening) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 1: unsafe endpoint path containing `?token=source-secret` was accepted into the manifest. |
 | Green (Task 2 security hardening) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 0: 7 tests passed after rejecting unsafe paths/schema values and excluding untrusted response descriptions from manifest artifacts. |
+| Red (Task 2 YAML hardening) | `python3 -m unittest skills/api-to-typemcp/tests/test_engine_cli.py -v` | Observed exit 1: mixed YAML keys caused an uncaught `TypeError` and alias fan-out exceeded the two-second test timeout. |
+| Green (Task 2 YAML hardening) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 0: 9 tests passed after bounded, identity-aware structure validation rejects non-string keys and alias fan-out without a traceback. |
 
 ## Verification
 
