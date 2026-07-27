@@ -84,6 +84,22 @@ def _swagger_base_url(document: dict[str, Any]) -> str:
     return _safe_base_url(f"{schemes[0]}://{host}{base_path}")
 
 
+def _safe_descriptor(raw: object) -> str:
+    """Return a display-safe local filename without path, query, or fragment data."""
+    if not isinstance(raw, str):
+        raise StructuredSpecError("source descriptor is invalid")
+    descriptor = raw.split("?", 1)[0].split("#", 1)[0]
+    if not descriptor or "/" in descriptor or "\\" in descriptor:
+        raise StructuredSpecError("source descriptor is invalid")
+    return descriptor
+
+
+def _required_flag(value: object) -> bool:
+    if not isinstance(value, bool):
+        raise StructuredSpecError("required must be a boolean")
+    return value
+
+
 def _parameters(values: object, swagger: bool) -> list[dict[str, Any]]:
     if values is None:
         return []
@@ -108,7 +124,7 @@ def _parameters(values: object, swagger: bool) -> list[dict[str, Any]]:
         schema_type = schema.get("type", "string")
         if not isinstance(schema_type, str) or schema_type not in _JSON_TYPES:
             raise StructuredSpecError("parameter schema type is unsupported")
-        item = {"name": name, "in": location, "required": bool(parameter.get("required", False)), "type": schema_type}
+        item = {"name": name, "in": location, "required": _required_flag(parameter.get("required", False)), "type": schema_type}
         normalized.append(item)
     return sorted(normalized, key=lambda item: (item["in"], item["name"]))
 
@@ -126,7 +142,7 @@ def _request_body(operation: dict[str, Any], swagger: bool) -> dict[str, Any] | 
         schema_type = schema.get("type", "object")
         if not isinstance(schema_type, str) or schema_type not in _JSON_TYPES:
             raise StructuredSpecError("body parameter schema type is unsupported")
-        return {"required": bool(bodies[0].get("required", False)), "contentType": "application/json", "type": schema_type}
+        return {"required": _required_flag(bodies[0].get("required", False)), "contentType": "application/json", "type": schema_type}
     body = operation.get("requestBody")
     if body is None:
         return None
@@ -139,7 +155,7 @@ def _request_body(operation: dict[str, Any], swagger: bool) -> dict[str, Any] | 
     schema_type = media.get("schema", {}).get("type", "object")
     if not isinstance(schema_type, str) or schema_type not in _JSON_TYPES:
         raise StructuredSpecError("requestBody media schema type is unsupported")
-    return {"required": bool(body.get("required", False)), "contentType": content_type, "type": schema_type}
+    return {"required": _required_flag(body.get("required", False)), "contentType": content_type, "type": schema_type}
 
 
 def _responses(values: object) -> list[dict[str, str]]:
@@ -149,10 +165,9 @@ def _responses(values: object) -> list[dict[str, str]]:
     for status, response in values.items():
         if not isinstance(status, str) or not re.fullmatch(r"(?:[1-5]\d\d|default)", status) or not isinstance(response, dict):
             raise StructuredSpecError("response is invalid")
-        # Response descriptions are untrusted prose and are not required to
-        # construct an MCP input contract. Excluding them prevents arbitrary
-        # source strings from entering a manifest or its digest.
-        result.append({"status": status})
+        # Generate a useful normalized summary from the validated status rather
+        # than copying untrusted response prose into an approval-bound artifact.
+        result.append({"status": status, "summary": f"HTTP {status} response"})
     return sorted(result, key=lambda response: response["status"])
 
 
@@ -213,7 +228,7 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
         "schema": MANIFEST_SCHEMA,
         "version": MANIFEST_VERSION,
         "protocol": "http",
-        "source": {"kind": kind, "descriptor": descriptor},
+        "source": {"kind": kind, "descriptor": _safe_descriptor(descriptor)},
         "baseUrl": base_url,
         "operations": operations,
     }

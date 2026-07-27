@@ -105,6 +105,61 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn("response-secret", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_descriptor_is_secret_free(self) -> None:
+        document = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {"/pets": {"get": {"operationId": "getPets", "responses": {"200": {"description": "ok"}}}}},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "spec?api_key=descriptor-secret.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("descriptor-secret", result.stdout)
+        self.assertEqual(json.loads(result.stdout)["source"]["descriptor"], "spec")
+
+    def test_required_must_be_boolean(self) -> None:
+        document = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {
+                "/pets": {
+                    "get": {
+                        "operationId": "getPets",
+                        "parameters": [{"name": "limit", "in": "query", "required": "false", "schema": {"type": "integer"}}],
+                        "responses": {"200": {"description": "ok"}},
+                    }
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unsafe.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_response_summary_is_generated_without_copying_untrusted_prose(self) -> None:
+        manifest = manifest_for("petstore.openapi.json")
+        operations = {operation["operationId"]: operation for operation in manifest["operations"]}
+        response = operations["getPet"]["responses"][0]
+
+        self.assertEqual(response, {"status": "200", "summary": "HTTP 200 response"})
+
 
 if __name__ == "__main__":
     unittest.main()
