@@ -22,7 +22,7 @@ The skill is an orchestrator. It invokes the CLI package; it does not duplicate 
 
 - [ClawHub (`@sjungwon03/api-to-typemcp`)](https://clawhub.ai/sjungwon03/api-to-typemcp)
 - [skills-hub.ai (`api-to-typemcp`)](https://skills-hub.ai/skills/api-to-typemcp)
-- [GitHub Release v0.1.3](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.3)
+- [GitHub Release v0.1.4](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.4)
 
 The published skill is versioned independently from the private CLI package. Installing the skill makes its orchestration guidance available; it does **not** make project generation executable until a reviewed `type-mcp-api-cli` npm release is listed in [the CLI compatibility policy](docs/guides/cli-compatibility.md). While that table lists no supported release, generation intentionally stops without installing or executing a CLI. See [the skill release guide](docs/guides/skill-release.md) for registry and release-lineage details.
 
