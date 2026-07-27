@@ -1,7 +1,7 @@
 ---
 name: api-to-typemcp
 description: Use when a user wants to turn an API URL, OpenAPI/Swagger file or link, Swagger UI, or Markdown/HTML API documentation into a standalone TypeMCP MCP project through the type-mcp-api-cli.
-version: 0.1.3
+version: 0.1.4
 category: integration
 license: MIT
 metadata:
@@ -17,6 +17,16 @@ metadata:
 This skill orchestrates the independently versioned `packages/type-mcp-api-cli` package in this workspace (or a future trusted npm release of that same package). It does not parse specifications, extract endpoints, create TypeScript templates, or substitute its own generator. The CLI is the deterministic engine; this skill is the approval, safety, verification, and publication layer.
 
 The target is a normal standalone TypeScript MCP repository whose runtime dependency is npm `type-mcp`.
+
+## Current availability
+
+The skill is installed and its orchestration guidance is available, even while no compatible CLI release is supported. It can explain the required source, manifest-approval, safety, verification, and publication workflow; it must **not** install or execute a candidate CLI, generate a project, run generated code, or publish output until the compatibility policy explicitly enables a release.
+
+When a user requests generation while the policy lists no supported release, give this safe outcome:
+
+> `api-to-typemcp` is installed, but no supported `type-mcp-api-cli` release is available yet. Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed. A maintainer must update [the canonical CLI compatibility policy](https://github.com/Theorvane/type-mcp-api-agent-skill/blob/dev/docs/guides/cli-compatibility.md) only after a reviewed CLI npm release is available; then retry.
+
+Do not replace the CLI with an in-workspace, global, `PATH`, or user-provided executable. The CLI release policy—not skill installation—controls whether generation may begin.
 
 ## When to use
 
