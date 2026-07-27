@@ -35,9 +35,12 @@ def load_local_document(file_name: str) -> tuple[Path, dict[str, Any]]:
         if suffix == ".json":
             document = json.loads(text)
         elif suffix in {".yaml", ".yml"}:
-            # PyYAML 6 is available in the supported runtime. safe_load never
+            # PyYAML is a pinned bundled-engine dependency. safe_load never
             # constructs Python objects and is intentionally the only YAML API used.
-            import yaml  # type: ignore[import-not-found]
+            try:
+                import yaml
+            except ModuleNotFoundError as exc:
+                raise IntakeError("YAML support requires PyYAML from the bundled skill requirements") from exc
 
             document = yaml.safe_load(text)
         else:

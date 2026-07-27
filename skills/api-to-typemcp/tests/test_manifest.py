@@ -6,6 +6,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -74,6 +75,35 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(operations["getPet"]["policy"], "read")
         self.assertEqual(operations["createPet"]["policy"], "protected-write")
         self.assertEqual(operations["createPet"]["requestBody"]["contentType"], "application/json")
+
+    def test_manifest_rejects_secret_bearing_or_unsafe_operation_values(self) -> None:
+        unsafe = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {
+                "/pets?token=source-secret": {
+                    "get": {
+                        "operationId": "getPet",
+                        "responses": {"200": {"description": "response-secret"}},
+                    }
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unsafe.json"
+            path.write_text(json.dumps(unsafe), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("source-secret", result.stderr)
+        self.assertNotIn("response-secret", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
 
 if __name__ == "__main__":

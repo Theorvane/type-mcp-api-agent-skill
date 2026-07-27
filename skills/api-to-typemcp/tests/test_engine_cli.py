@@ -53,6 +53,19 @@ class EngineCliTests(unittest.TestCase):
                 self.assertIn("error:", result.stderr)
                 self.assertNotIn("Traceback", result.stderr)
 
+    def test_yaml_requires_the_bundled_python_dependency_without_traceback(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-S", str(ENTRYPOINT), "inspect", "--file", str(FIXTURES / "petstore.swagger.yaml"), "--json"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("YAML support requires PyYAML", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

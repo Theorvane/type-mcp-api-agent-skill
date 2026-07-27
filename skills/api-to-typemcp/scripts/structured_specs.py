@@ -16,6 +16,8 @@ class StructuredSpecError(ValueError):
 
 _METHOD_ORDER = ("get", "head", "options", "post", "put", "patch", "delete")
 _OPERATION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
+_PATH_TEMPLATE = re.compile(r"^/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*(?:/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*)*$")
+_JSON_TYPES = frozenset({"string", "number", "integer", "boolean", "array", "object"})
 
 
 def _reject_references(value: Any) -> None:
@@ -80,7 +82,10 @@ def _parameters(values: object, swagger: bool) -> list[dict[str, Any]]:
         schema = parameter.get("schema", {}) if not swagger else {"type": parameter.get("type", "string")}
         if not isinstance(schema, dict):
             raise StructuredSpecError("parameter schema must be an object")
-        item = {"name": name, "in": location, "required": bool(parameter.get("required", False)), "type": schema.get("type", "string")}
+        schema_type = schema.get("type", "string")
+        if not isinstance(schema_type, str) or schema_type not in _JSON_TYPES:
+            raise StructuredSpecError("parameter schema type is unsupported")
+        item = {"name": name, "in": location, "required": bool(parameter.get("required", False)), "type": schema_type}
         normalized.append(item)
     return sorted(normalized, key=lambda item: (item["in"], item["name"]))
 
@@ -95,7 +100,10 @@ def _request_body(operation: dict[str, Any], swagger: bool) -> dict[str, Any] | 
         schema = bodies[0].get("schema")
         if not isinstance(schema, dict):
             raise StructuredSpecError("body parameter schema must be an object")
-        return {"required": bool(bodies[0].get("required", False)), "contentType": "application/json", "type": schema.get("type", "object")}
+        schema_type = schema.get("type", "object")
+        if not isinstance(schema_type, str) or schema_type not in _JSON_TYPES:
+            raise StructuredSpecError("body parameter schema type is unsupported")
+        return {"required": bool(bodies[0].get("required", False)), "contentType": "application/json", "type": schema_type}
     body = operation.get("requestBody")
     if body is None:
         return None
@@ -105,7 +113,10 @@ def _request_body(operation: dict[str, Any], swagger: bool) -> dict[str, Any] | 
     media = body["content"][content_type]
     if not isinstance(media, dict) or not isinstance(media.get("schema", {}), dict):
         raise StructuredSpecError("requestBody media schema must be an object")
-    return {"required": bool(body.get("required", False)), "contentType": content_type, "type": media.get("schema", {}).get("type", "object")}
+    schema_type = media.get("schema", {}).get("type", "object")
+    if not isinstance(schema_type, str) or schema_type not in _JSON_TYPES:
+        raise StructuredSpecError("requestBody media schema type is unsupported")
+    return {"required": bool(body.get("required", False)), "contentType": content_type, "type": schema_type}
 
 
 def _responses(values: object) -> list[dict[str, str]]:
@@ -113,12 +124,12 @@ def _responses(values: object) -> list[dict[str, str]]:
         raise StructuredSpecError("operation responses must be an object")
     result: list[dict[str, str]] = []
     for status, response in values.items():
-        if not isinstance(status, str) or not isinstance(response, dict):
+        if not isinstance(status, str) or not re.fullmatch(r"(?:[1-5]\d\d|default)", status) or not isinstance(response, dict):
             raise StructuredSpecError("response is invalid")
-        description = response.get("description", "")
-        if not isinstance(description, str):
-            raise StructuredSpecError("response description must be a string")
-        result.append({"status": status, "description": description})
+        # Response descriptions are untrusted prose and are not required to
+        # construct an MCP input contract. Excluding them prevents arbitrary
+        # source strings from entering a manifest or its digest.
+        result.append({"status": status})
     return sorted(result, key=lambda response: response["status"])
 
 
@@ -144,7 +155,7 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
     seen_ids: set[str] = set()
     for path in sorted(paths):
         item = paths[path]
-        if not isinstance(path, str) or not path.startswith("/") or not isinstance(item, dict):
+        if not isinstance(path, str) or not _PATH_TEMPLATE.fullmatch(path) or not isinstance(item, dict):
             raise StructuredSpecError("path item is invalid")
         common_parameters = item.get("parameters", [])
         for method in _METHOD_ORDER:

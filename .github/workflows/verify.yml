@@ -35,11 +35,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Verify embedded-engine migration boundary
+      - name: Verify bundled structured-spec engine
         run: |
-          # Task 1 is structural only. Task 2 adds executable engine tests and
-          # Task 5 adds generated-project E2E without a deleted-package lockfile.
+          python3 -m pip install --requirement skills/api-to-typemcp/requirements.txt
           python3 .agents/scripts/test_workspace.py
           python3 .agents/scripts/test_validate_docs.py
           python3 .agents/scripts/validate_docs.py
+          python3 -m py_compile skills/api-to-typemcp/scripts/*.py
+          python3 -m unittest discover -s skills/api-to-typemcp/tests -v
           git diff --check

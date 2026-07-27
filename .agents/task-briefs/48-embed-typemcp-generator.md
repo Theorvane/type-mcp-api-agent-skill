@@ -1,6 +1,6 @@
 # Task brief: 48 — embed a TypeMCP project generator in api-to-typemcp
 
-**Status:** Task 1 complete; Tasks 2–8 pending
+**Status:** Tasks 1–2 complete; Tasks 3–8 pending
 **Issue:** https://github.com/Theorvane/type-mcp-api-agent-skill/issues/48
 **Branch:** `feat/48-embed-typemcp-generator`
 **Owner:** sjungwon03
@@ -60,7 +60,9 @@ Task 1 deliberately does **not** add `scripts/api_to_typemcp.py`, engine behavio
 | Green (Task 2) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 0: 6 tests passed for local JSON/YAML intake, deterministic secret-free manifests, malformed/unsupported rejection, and fail-closed policy gates. |
 | Regression (Task 2) | `python3 .agents/scripts/test_validate_docs.py` | Observed exit 0: 7 tests passed. |
 | Regression (Task 2) | `python3 .agents/scripts/validate_docs.py` | Observed exit 0: validated 32 Markdown files and 15 required harness files. |
-| Scoped harness note (Task 2) | `python3 .agents/scripts/test_workspace.py` | Observed exit 1: its Task 1 structural assertion still requires `scripts/api_to_typemcp.py` to be absent. It is intentionally not modified in this Task 2-focused commit. |
+| Regression (Task 2) | `python3 .agents/scripts/test_workspace.py` | Observed exit 0: 3 tests passed after updating the structural assertion to require the Task 2 engine entry point/modules while deferring Task 4 templates. |
+| Red (Task 2 security hardening) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 1: unsafe endpoint path containing `?token=source-secret` was accepted into the manifest. |
+| Green (Task 2 security hardening) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 0: 7 tests passed after rejecting unsafe paths/schema values and excluding untrusted response descriptions from manifest artifacts. |
 
 ## Verification
 
