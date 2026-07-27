@@ -27,6 +27,10 @@ TYPE_MCP_RUNTIME = "@theorvane/type-mcp"
 PUBLICATION_CONFIRMATION = "owner/org, repository name, visibility, and source branch"
 REF_VERIFICATION = "actual checked-out/ref-to-publish branch"
 REF_EQUALITY_STOP = "stop unless it exactly equals the recorded source branch"
+RELEASE_ENGINE_CONTRACT = "No separate generator CLI is required"
+RELEASE_ENGINE_FIXTURES = "Engine fixtures cover malformed source, manifest, receipt, and policy rejection"
+RELEASE_CONTAINED_VERIFICATION = "contained temporary directory"
+RELEASE_TYPE_MCP_DEPENDENCY = "published `@theorvane/type-mcp` dependency"
 
 
 class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
@@ -78,6 +82,24 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
             ("docs/guides/security-and-publication.md", PUBLICATION_CONFIRMATION),
             ("docs/guides/security-and-publication.md", REF_VERIFICATION),
             ("docs/guides/security-and-publication.md", REF_EQUALITY_STOP),
+        ):
+            with self.subTest(path=relative_path, phrase=phrase):
+                self.assert_validator_fails_after_removal(relative_path, phrase)
+
+    def test_validator_preserves_release_readiness_embedded_engine_contract(self) -> None:
+        for phrase in (
+            RELEASE_ENGINE_CONTRACT,
+            RELEASE_ENGINE_FIXTURES,
+            RELEASE_CONTAINED_VERIFICATION,
+            RELEASE_TYPE_MCP_DEPENDENCY,
+        ):
+            with self.subTest(phrase=phrase):
+                self.assert_validator_fails_after_removal(".agents/checklists/release-readiness.md", phrase)
+
+    def test_validator_preserves_execution_and_containment_safety_contracts(self) -> None:
+        for relative_path, phrase in (
+            ("docs/guides/security-and-publication.md", "before upstream request construction or dispatch"),
+            ("docs/guides/security-and-publication.md", "npm ci --ignore-scripts"),
         ):
             with self.subTest(path=relative_path, phrase=phrase):
                 self.assert_validator_fails_after_removal(relative_path, phrase)

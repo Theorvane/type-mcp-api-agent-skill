@@ -76,6 +76,12 @@ def main() -> int:
         "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm ci --ignore-scripts", "actual checked-out/ref-to-publish branch"),
         "docs/planning/README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "protected-write authorization before request construction"),
         "skills/api-to-typemcp/SKILL.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before URL, query, headers, body, authentication, or dispatch"),
+        ".agents/checklists/release-readiness.md": (
+            "No separate generator CLI is required",
+            "Engine fixtures cover malformed source, manifest, receipt, and policy rejection",
+            "contained temporary directory",
+            "published `@theorvane/type-mcp` dependency",
+        ),
     }
     for relative_path, required_phrases in contract_files.items():
         content = (ROOT / relative_path).read_text(encoding="utf-8")
