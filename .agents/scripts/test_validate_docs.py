@@ -20,7 +20,7 @@ BRANCH_GOVERNANCE = "Protected branch flow after bootstrap"
 DISTRIBUTION_LINKS = (
     "https://clawhub.ai/sjungwon03/api-to-typemcp",
     "https://skills-hub.ai/skills/api-to-typemcp",
-    "https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.3",
+    "https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.4",
 )
 PRE_RELEASE_CLI_GUIDANCE = "The skill is installed and its orchestration guidance is available"
 RELEASE_UNBLOCK_GUIDANCE = "Update the compatibility table only after a reviewed CLI npm release exists"
