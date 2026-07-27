@@ -24,6 +24,15 @@ DISTRIBUTION_LINKS = (
 )
 PRE_RELEASE_CLI_GUIDANCE = "The skill is installed and its orchestration guidance is available"
 RELEASE_UNBLOCK_GUIDANCE = "Update the compatibility table only after a reviewed CLI npm release exists"
+PRE_RELEASE_DENIAL_CONTRACT = (
+    "it must not run a candidate CLI, install a package, generate a project, execute generated code, or publish output"
+)
+SAFE_BLOCKED_OUTCOME = (
+    "Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed"
+)
+CANONICAL_COMPATIBILITY_POLICY_URL = (
+    "https://github.com/Theorvane/type-mcp-api-agent-skill/blob/dev/docs/guides/cli-compatibility.md"
+)
 
 
 class PublicationContractValidatorTests(unittest.TestCase):
@@ -96,6 +105,21 @@ class PublicationContractValidatorTests(unittest.TestCase):
     def test_compatibility_policy_rejects_missing_release_unblock_guidance(self) -> None:
         self.assert_validator_fails_after_removal(
             "docs/guides/cli-compatibility.md", RELEASE_UNBLOCK_GUIDANCE
+        )
+
+    def test_compatibility_policy_rejects_missing_pre_release_denial_contract(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "docs/guides/cli-compatibility.md", PRE_RELEASE_DENIAL_CONTRACT
+        )
+
+    def test_skill_rejects_missing_safe_blocked_outcome(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "skills/api-to-typemcp/SKILL.md", SAFE_BLOCKED_OUTCOME
+        )
+
+    def test_skill_rejects_missing_canonical_compatibility_policy_url(self) -> None:
+        self.assert_validator_fails_after_removal(
+            "skills/api-to-typemcp/SKILL.md", CANONICAL_COMPATIBILITY_POLICY_URL
         )
 
 

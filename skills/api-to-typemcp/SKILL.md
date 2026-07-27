@@ -24,7 +24,7 @@ The skill is installed and its orchestration guidance is available, even while n
 
 When a user requests generation while the policy lists no supported release, give this safe outcome:
 
-> `api-to-typemcp` is installed, but no supported `type-mcp-api-cli` release is available yet. Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed. Update [`docs/guides/cli-compatibility.md`](../../docs/guides/cli-compatibility.md) after a reviewed CLI npm release is available, then retry.
+> `api-to-typemcp` is installed, but no supported `type-mcp-api-cli` release is available yet. Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed. A maintainer must update [the canonical CLI compatibility policy](https://github.com/Theorvane/type-mcp-api-agent-skill/blob/dev/docs/guides/cli-compatibility.md) only after a reviewed CLI npm release is available; then retry.
 
 Do not replace the CLI with an in-workspace, global, `PATH`, or user-provided executable. The CLI release policy—not skill installation—controls whether generation may begin.
 

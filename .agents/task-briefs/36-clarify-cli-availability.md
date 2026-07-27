@@ -41,8 +41,8 @@ An installed `api-to-typemcp` skill clearly explains that its orchestration guid
 | Stage | Command | Expected/observed result |
 | --- | --- | --- |
 | Red | `python3 .agents/scripts/test_validate_docs.py` | Failed as intended: the required pre-release skill and release-unblock guidance were absent. |
-| Green | `python3 .agents/scripts/test_validate_docs.py` | Passed: 10 tests. |
-| Regression | `python3 .agents/scripts/test_workspace.py`, `python3 .agents/scripts/validate_docs.py` | Passed: 5 workspace tests; 38 Markdown files and 15 required harness files validated. |
+| Green | `python3 .agents/scripts/test_validate_docs.py` | Passed: 13 tests, including the full pre-release denial contract, safe blocked outcome, and installed-skill canonical policy URL. |
+| Regression | `python3 .agents/scripts/test_workspace.py`, `python3 .agents/scripts/validate_docs.py`, `npm --prefix packages/type-mcp-api-cli run verify` | Passed: 5 workspace tests; 38 Markdown files and 15 required harness files validated; CLI verification passed with 18 tests. |
 
 ## Verification
 
@@ -58,4 +58,4 @@ An installed `api-to-typemcp` skill clearly explains that its orchestration guid
 
 ## Review notes
 
-- No review findings yet.
+- Independent review found that the installed-skill relative policy link would break after publication and that the added regressions did not protect the full pre-release denial contract. Resolved with a canonical GitHub policy URL, a validator that distinguishes external Markdown URLs from local paths, and regressions for the denial contract and safe blocked outcome.
