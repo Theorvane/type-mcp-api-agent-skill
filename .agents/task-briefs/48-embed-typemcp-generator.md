@@ -56,6 +56,11 @@ Task 1 deliberately does **not** add `scripts/api_to_typemcp.py`, engine behavio
 | Green | `python3 .agents/scripts/validate_docs.py` | Observed exit 0: validated 32 Markdown files and 15 required harness files. |
 | Regression | `python3 .agents/scripts/test_skill_release.py` | Observed exit 0: 12 tests passed. |
 | Regression | `python3 -m py_compile .agents/scripts/*.py && git diff --check` | Observed exit 0. |
+| Red (Task 2) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 1: four CLI/manifest failures because `scripts/api_to_typemcp.py` did not exist, plus one policy import error because `scripts/policy.py` did not exist. |
+| Green (Task 2) | `python3 -m unittest discover -s skills/api-to-typemcp/tests -v` | Observed exit 0: 6 tests passed for local JSON/YAML intake, deterministic secret-free manifests, malformed/unsupported rejection, and fail-closed policy gates. |
+| Regression (Task 2) | `python3 .agents/scripts/test_validate_docs.py` | Observed exit 0: 7 tests passed. |
+| Regression (Task 2) | `python3 .agents/scripts/validate_docs.py` | Observed exit 0: validated 32 Markdown files and 15 required harness files. |
+| Scoped harness note (Task 2) | `python3 .agents/scripts/test_workspace.py` | Observed exit 1: its Task 1 structural assertion still requires `scripts/api_to_typemcp.py` to be absent. It is intentionally not modified in this Task 2-focused commit. |
 
 ## Verification
 
@@ -66,7 +71,7 @@ Task 1 deliberately does **not** add `scripts/api_to_typemcp.py`, engine behavio
 - [x] Python harness compilation
 - [x] `git diff --check`
 - [x] Documentation updated
-- [ ] Engine unit/integration tests (Task 2)
+- [x] Engine unit/integration tests (Task 2)
 - [ ] Generated-project E2E (Task 5)
 - [ ] Independent specification review recorded
 - [ ] Independent code-quality review recorded
