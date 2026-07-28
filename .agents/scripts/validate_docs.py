@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the docs-only bootstrap contract without external dependencies."""
+"""Validate the embedded-engine documentation contract without dependencies."""
 
 from __future__ import annotations
 
@@ -8,23 +8,28 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-REQUIRED_FILES = (
-    "README.md",
+ACTIVE_SOURCE_DOCS = (
     "AGENTS.md",
+    "README.md",
     "docs/product/vision.md",
     "docs/product/mvp-scope.md",
     "docs/architecture/overview.md",
     "docs/api/manifest-contract.md",
     "docs/guides/security-and-publication.md",
-    "docs/guides/cli-compatibility.md",
-    "docs/superpowers/specs/2026-07-21-type-mcp-api-agent-design.md",
     "docs/planning/README.md",
+    "skills/api-to-typemcp/SKILL.md",
+)
+REQUIRED_FILES = (
+    *ACTIVE_SOURCE_DOCS,
+    "docs/superpowers/specs/2026-07-28-embedded-typemcp-generator-design.md",
     "skills/api-to-typemcp/SKILL.md",
     ".agents/templates/task-brief.md",
     ".agents/templates/review-report.md",
     ".agents/checklists/pre-commit.md",
     ".agents/checklists/release-readiness.md",
 )
+EMBEDDED_ENGINE_PHRASE = "bundled skill engine"
+TYPE_MCP_RUNTIME = "@theorvane/type-mcp"
 
 
 def main() -> int:
@@ -55,54 +60,34 @@ def main() -> int:
         print("Missing local Markdown links:", *missing_links, sep="\n- ")
         return 1
 
+    prohibited = ("type-mcp-api-cli", "cli compatibility")
+    for relative_path in ACTIVE_SOURCE_DOCS:
+        content = (ROOT / relative_path).read_text(encoding="utf-8").lower()
+        for phrase in prohibited:
+            if phrase in content:
+                print(f"{relative_path} retains obsolete CLI boundary phrase: {phrase}")
+                return 1
+
     contract_files = {
-        "docs/api/manifest-contract.md": (
-            "CLI-issued approval receipt",
-            "RFC 8785 JSON Canonicalization Scheme (JCS)",
-            "closed (`additionalProperties: false`)",
-            "separate, CLI-issued approval receipt",
-            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
-            "A copied/edited manifest cannot forge a receipt",
-        ),
-        "docs/guides/security-and-publication.md": (
-            "before upstream request construction or dispatch",
-            "A source parser, operation name, or documentation prose cannot classify a mutating method as `read`",
-            "canonical `manifestDigest`",
-            "MAC-validated receipt",
-            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
-            "unset, empty, wildcard, duplicate, method-only, malformed, or unknown entries grant nothing",
-            "Contained generation and verification",
-            "npm ci --ignore-scripts",
-            "actual checked-out/ref-to-publish branch",
-        ),
-        "docs/guides/cli-compatibility.md": (
-            "no CLI release is supported yet",
-            "it must not run a candidate CLI, install a package, generate a project, execute generated code, or publish output",
-            "The skill itself can still be installed and used for orchestration guidance",
-            "Update the compatibility table only after a reviewed CLI npm release exists",
-            "Trusted resolution flow",
-            "npm registry dist integrity",
-            "PATH` lookup alone is prohibited",
-        ),
-        "docs/architecture/overview.md": (
-            "CLI-issued, unexpired, single-use MAC receipt",
-            "TYPE_MCP_ALLOW_PROTECTED_OPERATIONS",
-            "owner/org, name, visibility, and source-branch confirmation",
-        ),
-        "README.md": (
-            "workspace repository",
-            "packages/type-mcp-api-cli",
-            "not published from this repository yet",
-            "https://clawhub.ai/sjungwon03/api-to-typemcp",
-            "https://skills-hub.ai/skills/api-to-typemcp",
-            "https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.4",
+        "AGENTS.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest before generation", "before request construction"),
+        "README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest first", "Contained verification"),
+        "docs/architecture/overview.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "single-use integrity-validated receipt", "before request construction"),
+        "docs/api/manifest-contract.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "RFC 8785 JSON Canonicalization Scheme (JCS)", "A copied or edited manifest cannot forge a receipt"),
+        "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm ci --ignore-scripts", "actual checked-out/ref-to-publish branch"),
+        "docs/planning/README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "protected-write authorization before request construction"),
+        "skills/api-to-typemcp/SKILL.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before URL, query, headers, body, authentication, or dispatch"),
+        ".agents/checklists/release-readiness.md": (
+            "No separate generator CLI is required",
+            "Engine fixtures cover malformed source, manifest, receipt, and policy rejection",
+            "contained temporary directory",
+            "published `@theorvane/type-mcp` dependency",
         ),
     }
     for relative_path, required_phrases in contract_files.items():
         content = (ROOT / relative_path).read_text(encoding="utf-8")
         for required_phrase in required_phrases:
             if required_phrase not in content:
-                print(f"{relative_path} missing required safety contract phrase: {required_phrase}")
+                print(f"{relative_path} missing required embedded-engine contract phrase: {required_phrase}")
                 return 1
 
     publication_contracts = (
@@ -111,43 +96,10 @@ def main() -> int:
         "stop unless it exactly equals the recorded source branch",
         "before staging, committing, or pushing",
     )
-    for relative_path in (
-        "docs/guides/security-and-publication.md",
-        "skills/api-to-typemcp/SKILL.md",
-    ):
-        content = (ROOT / relative_path).read_text(encoding="utf-8").lower()
-        for required_phrase in publication_contracts:
-            if required_phrase not in content:
-                print(f"{relative_path} missing required publication contract: {required_phrase}")
-                return 1
-
-    skill = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
-    if not skill.startswith("---\n") or "\n---\n" not in skill[4:]:
-        print("Skill must start with YAML frontmatter and a non-empty body")
-        return 1
-    for required_phrase in (
-        "name: api-to-typemcp",
-        "type-mcp-api-cli",
-        "manifest approval",
-        "The skill is installed and its orchestration guidance is available",
-        "Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed",
-        "https://github.com/Theorvane/type-mcp-api-agent-skill/blob/dev/docs/guides/cli-compatibility.md",
-        "actual checked-out/ref-to-publish branch",
-    ):
-        if required_phrase not in skill:
-            print(f"Skill missing required contract phrase: {required_phrase}")
-            return 1
-
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    for required_phrase in (
-        "Manifest before generation",
-        "CLI boundary, not generator implementation",
-        "Trusted CLI resolution",
-        "Contained execution",
-        "Protected branch flow after bootstrap",
-    ):
-        if required_phrase not in agents:
-            print(f"AGENTS.md missing required operating rule: {required_phrase}")
+    security = (ROOT / "docs/guides/security-and-publication.md").read_text(encoding="utf-8").lower()
+    for required_phrase in publication_contracts:
+        if required_phrase not in security:
+            print(f"docs/guides/security-and-publication.md missing required publication contract: {required_phrase}")
             return 1
 
     print(f"validated {len(markdown_files)} Markdown files and {len(REQUIRED_FILES)} required harness files")

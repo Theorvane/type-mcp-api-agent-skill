@@ -1,22 +1,19 @@
 # type-mcp-api-agent-skill
 
-A unified **workspace repository** for API-to-TypeMCP automation:
-
-- root: the `api-to-typemcp` Hermes skill, approval/publication safety policy, and orchestration harness;
-- `packages/type-mcp-api-cli/`: the deterministic TypeScript CLI package used directly in terminal/CI workflows and by the skill after trusted compatibility resolution.
+The published `api-to-typemcp` Hermes skill is the single delivery unit for API-to-TypeMCP generation. Its **bundled skill engine** will turn approved API documentation into standalone TypeScript MCP projects that depend on the published [`@theorvane/type-mcp`](https://www.npmjs.com/package/@theorvane/type-mcp) package.
 
 ## Status
 
-The repository contains an implemented local-only CLI bootstrap (`metadata --json`, plus local OpenAPI 3.x / Swagger 2.0 `inspect --file <path> --json`) and the approved skill/orchestration contract. The CLI is intentionally a distinct package boundary inside this workspace. The CLI package is **not published from this repository yet** and remains `private`; the complete manifest/approval/generation workflow is also not implemented.
+The repository has migrated to the embedded-engine boundary. The executable engine and TypeScript templates are intentionally deferred to the next implementation tasks; this Task 1 change establishes the documentation, CI, and release boundary and does not claim generation is already implemented.
 
-## Choose a usage mode
+## Safety contract
 
-| Need | Use |
-| --- | --- |
-| Deterministic local structured-spec inspection in terminal/CI | `packages/type-mcp-api-cli/` directly |
-| Guided source discovery, manifest approval, safety gates, verification, and confirmed GitHub publication | root `skills/api-to-typemcp/` Hermes skill |
-
-The skill is an orchestrator. It invokes the CLI package; it does not duplicate parsing, normalization, manifest rendering, or project templates.
+- **Manifest first:** normalize and review a secret-free manifest before generation.
+- **Bounded sources:** accept supplied OpenAPI/Swagger files or explicit documentation only; never enumerate a bare API origin.
+- **Secrets stay external:** artifacts may contain environment-variable names and mappings, never values.
+- **Protected writes fail closed:** `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` must authorize an exact known operation ID before request construction.
+- **Contained verification:** inspect generated dependencies, use `npm ci --ignore-scripts`, and verify only in a fresh scrubbed workspace.
+- **Publication is separate:** immediately before publication, confirm owner/org, repository name, visibility, and source branch; verify the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch.
 
 ## Install the released skill
 
@@ -24,53 +21,34 @@ The skill is an orchestrator. It invokes the CLI package; it does not duplicate 
 - [skills-hub.ai (`api-to-typemcp`)](https://skills-hub.ai/skills/api-to-typemcp)
 - [GitHub Release v0.1.4](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.1.4)
 
-The published skill is versioned independently from the private CLI package. Installing the skill makes its orchestration guidance available; it does **not** make project generation executable until a reviewed `type-mcp-api-cli` npm release is listed in [the CLI compatibility policy](docs/guides/cli-compatibility.md). While that table lists no supported release, generation intentionally stops without installing or executing a CLI. See [the skill release guide](docs/guides/skill-release.md) for registry and release-lineage details.
-
-## Workspace layout
+## Layout
 
 ```text
 .
-├── skills/api-to-typemcp/       # Hermes orchestration skill
+├── skills/api-to-typemcp/       # published skill and future bundled engine
+│   ├── scripts/                 # Task 2 engine modules
+│   └── templates/               # Task 4 controlled TypeScript templates
 ├── docs/                        # product, architecture, contract, and safety policy
-├── .agents/                     # root harness and documentation regression checks
-└── packages/type-mcp-api-cli/   # standalone deterministic TypeScript CLI package
+├── .agents/                     # harness and documentation regression checks
+└── .github/workflows/           # documentation and bundled-engine CI
 ```
-
-## Current CLI commands
-
-```bash
-cd packages/type-mcp-api-cli
-npm ci
-npm run build
-node dist/cli.js metadata --json
-node dist/cli.js inspect --file ./openapi.yaml --json
-```
-
-`inspect` reads only one local JSON/YAML source, produces a secret-free summary, and does not use the network or generate files. Remote intake, Swagger UI discovery, Markdown/HTML extraction, manifest creation, approval receipts, and project generation remain planned.
 
 ## Verification
 
 ```bash
-# Root skill/docs harness
 python3 .agents/scripts/test_validate_docs.py
 python3 .agents/scripts/test_workspace.py
 python3 .agents/scripts/validate_docs.py
-
-# CLI package
-npm --prefix packages/type-mcp-api-cli ci
-npm --prefix packages/type-mcp-api-cli run verify
-npm --prefix packages/type-mcp-api-cli audit --omit=dev --audit-level=high
+git diff --check
 ```
 
 ## Canonical documentation
 
 - Product scope: `docs/product/`
-- Architecture and package boundary: `docs/architecture/`
+- Embedded-engine architecture: `docs/architecture/`
 - Manifest and generated API contracts: `docs/api/`
-- Safety, auth, execution containment, and publication guides: `docs/guides/`
-- Trusted CLI compatibility source of truth: `docs/guides/cli-compatibility.md`
-- CLI implementation contract: `packages/type-mcp-api-cli/docs/api/cli-contract.md`
-- Skill instructions: `skills/api-to-typemcp/SKILL.md`
-- Skill release and registry publication: `docs/guides/skill-release.md`
+- Safety, execution containment, and publication: `docs/guides/`
+- Approved plans: `docs/planning/`
+- Skill instructions and release artifact: `skills/api-to-typemcp/SKILL.md`
 
-Read `AGENTS.md` before changing either root orchestration or the CLI package. Do not represent planned CLI or generation behavior as implemented behavior.
+Read `AGENTS.md` before changing the embedded engine. Do not represent planned engine behavior as implemented behavior.

@@ -28,19 +28,19 @@ jobs:
           python3 -m py_compile .agents/scripts/validate_docs.py .agents/scripts/test_validate_docs.py .agents/scripts/test_workspace.py .agents/scripts/validate_branch_governance.py .agents/scripts/test_validate_branch_governance.py .agents/scripts/validate_release_promotion.py
           git diff --check
 
-  cli-package:
+  bundled-engine:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/type-mcp-api-cli
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: packages/type-mcp-api-cli/package-lock.json
-      - run: npm ci
-      - run: npm run verify
-      - run: npm audit --omit=dev --audit-level=high
-      - run: git diff --check
+          python-version: "3.12"
+      - name: Verify bundled structured-spec engine
+        run: |
+          python3 -m pip install --requirement skills/api-to-typemcp/requirements.txt
+          python3 .agents/scripts/test_workspace.py
+          python3 .agents/scripts/test_validate_docs.py
+          python3 .agents/scripts/validate_docs.py
+          python3 -m py_compile skills/api-to-typemcp/scripts/*.py
+          python3 -m unittest discover -s skills/api-to-typemcp/tests -v
+          git diff --check
