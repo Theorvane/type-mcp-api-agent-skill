@@ -182,7 +182,7 @@ jobs:
               output.write(f"CLAWHUB_CONFIG_PATH={config_path}\n")
           PY
           export CLAWHUB_CONFIG_PATH="$RUNNER_TEMP/clawhub-config.json"
-          bun .clawhub-source/packages/clawhub/src/cli.ts \
+          publication="$(bun .clawhub-source/packages/clawhub/src/cli.ts \
             --no-input \
             --workdir "$GITHUB_WORKSPACE" \
             --site "$CLAWHUB_SITE" \
@@ -193,7 +193,32 @@ jobs:
             --source-repo "$GITHUB_REPOSITORY" \
             --source-commit "$GITHUB_SHA" \
             --source-ref main \
-            --source-path skills/api-to-typemcp
+            --source-path skills/api-to-typemcp)"
+          printf '%s\n' "$publication"
+          CLAW_HUB_PUBLICATION="$publication" python3 - <<'PY'
+          import json
+          import os
+
+          expected_version = os.environ["SKILL_VERSION"]
+          try:
+              payload = json.loads(os.environ["CLAW_HUB_PUBLICATION"])
+          except json.JSONDecodeError as error:
+              raise SystemExit("ClawHub publish did not return JSON.") from error
+          if not isinstance(payload, dict):
+              raise SystemExit("ClawHub publish returned an invalid result.")
+          if (
+              payload.get("status") != "published"
+              or payload.get("publicationStatus") != "published"
+              or payload.get("version") != expected_version
+          ):
+              raise SystemExit(
+                  "ClawHub public confirmation failed: "
+                  f"status={payload.get('status')!r}, "
+                  f"publicationStatus={payload.get('publicationStatus')!r}, "
+                  f"version={payload.get('version')!r}, "
+                  f"expected={expected_version!r}."
+              )
+          PY
 
   publish-skills-hub-ai:
     needs: [prepare, release]
