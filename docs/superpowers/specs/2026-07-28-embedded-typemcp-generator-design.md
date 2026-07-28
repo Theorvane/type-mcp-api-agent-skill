@@ -1,7 +1,7 @@
 # Embedded TypeMCP Generator Design
 
-**Status:** Proposed for implementation review  
-**Issue:** [#48](https://github.com/Theorvane/type-mcp-api-agent-skill/issues/48)  
+**Status:** Proposed for implementation review
+**Issue:** [#48](https://github.com/Theorvane/type-mcp-api-agent-skill/issues/48)
 **Decision:** `api-to-typemcp` ships its own deterministic generator. It does not depend on a separate `type-mcp-api-cli` repository, package, or npm release.
 
 ## Goal
