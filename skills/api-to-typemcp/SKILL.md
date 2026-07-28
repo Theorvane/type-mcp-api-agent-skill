@@ -1,7 +1,7 @@
 ---
 name: api-to-typemcp
 description: Use when turning supplied API sources into a safe TypeMCP project.
-version: 0.2.0
+version: 0.2.1
 category: integration
 license: MIT
 metadata:
