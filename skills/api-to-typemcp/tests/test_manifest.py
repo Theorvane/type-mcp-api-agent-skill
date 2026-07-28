@@ -160,6 +160,167 @@ class ManifestTests(unittest.TestCase):
 
         self.assertEqual(response, {"status": "200", "summary": "HTTP 200 response"})
 
+    def test_authentication_scheme_names_are_normalized_without_secrets(self) -> None:
+        document = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {"/pets": {"get": {"operationId": "getPets", "responses": {"200": {"description": "ok"}}}}},
+            "components": {
+                "securitySchemes": {
+                    "apiAuth": {"type": "apiKey", "in": "header", "name": "X-Api-Key"},
+                    "bearerAuth": {"type": "http", "scheme": "bearer"},
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "auth.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        manifest = json.loads(result.stdout)
+        auth = manifest["authentication"]
+        self.assertEqual(len(auth), 2)
+        by_name = {entry["name"]: entry for entry in auth}
+        self.assertEqual(by_name["apiAuth"]["type"], "apiKey")
+        self.assertEqual(by_name["apiAuth"]["in"], "header")
+        self.assertEqual(by_name["apiAuth"]["parameterName"], "X-Api-Key")
+        self.assertEqual(by_name["bearerAuth"]["type"], "http")
+        self.assertEqual(by_name["bearerAuth"]["scheme"], "bearer")
+        rendered = json.dumps(manifest, sort_keys=True)
+        self.assertNotIn("secret", rendered.lower())
+
+    def test_unsupported_auth_scheme_type_is_rejected(self) -> None:
+        document = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {"/pets": {"get": {"operationId": "getPets", "responses": {"200": {"description": "ok"}}}}},
+            "components": {"securitySchemes": {"custom": {"type": "mutualTLS"}}},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad-auth.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_unsupported_http_method_is_rejected_not_silently_omitted(self) -> None:
+        document = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {
+                "/pets": {
+                    "get": {"operationId": "getPets", "responses": {"200": {"description": "ok"}}},
+                    "trace": {"operationId": "tracePets", "responses": {"200": {"description": "ok"}}},
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trace.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("TRACE", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_unbound_path_template_variable_is_rejected(self) -> None:
+        document = {
+            "openapi": "3.0.0",
+            "servers": [{"url": "https://api.example.test"}],
+            "paths": {
+                "/pets/{id}": {
+                    "get": {"operationId": "getPet", "responses": {"200": {"description": "ok"}}},
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unbound.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_lone_surrogate_in_json_is_rejected_without_traceback(self) -> None:
+        raw = '{"openapi":"3.0.0","servers":[{"url":"https://api.example.test"}],"paths":{"/pets":{"get":{"operationId":"getPets","responses":{"200":{"description":"\\ud800ok"}}}}}}'
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "surrogate.json"
+            path.write_text(raw, encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_duplicate_json_keys_are_rejected(self) -> None:
+        raw = '{"openapi":"3.0.0","servers":[{"url":"https://api.example.test"}],"paths":{"/pets":{"get":{"operationId":"getPets","responses":{"200":{"description":"ok"}}},"get":{"operationId":"getPets2","responses":{"200":{"description":"ok"}}}}}}'
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dup-keys.json"
+            path.write_text(raw, encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("duplicate", result.stderr.lower())
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_duplicate_yaml_keys_are_rejected(self) -> None:
+        raw = "openapi: '3.0.0'\nservers:\n  - url: https://api.example.test\npaths:\n  /pets:\n    get:\n      operationId: getPets\n      responses:\n        '200':\n          description: ok\n    get:\n      operationId: getPets2\n      responses:\n        '200':\n          description: ok\n"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dup-keys.yaml"
+            path.write_text(raw, encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "manifest", "--file", str(path), "--json"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("duplicate", result.stderr.lower())
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_manifest_includes_authentication_field_even_when_empty(self) -> None:
+        manifest = manifest_for("petstore.openapi.json")
+        self.assertIn("authentication", manifest)
+        self.assertEqual(manifest["authentication"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

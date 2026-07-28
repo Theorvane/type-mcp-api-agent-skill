@@ -14,23 +14,50 @@ class StructuredSpecError(ValueError):
     """A user-safe unsupported or malformed structured specification error."""
 
 
-_METHOD_ORDER = ("get", "head", "options", "post", "put", "patch", "delete")
+_SUPPORTED_METHODS = ("get", "head", "options", "post", "put", "patch", "delete")
+_UNSUPPORTED_METHOD_KEYS = frozenset({"trace", "connect"})
 _OPERATION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
-_PATH_TEMPLATE = re.compile(r"^/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*(?:/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*)*$")
+_PATH_TEMPLATE = re.compile(
+    r"^/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*"
+    r"(?:/(?:[^/?#{}]+|\{[A-Za-z][A-Za-z0-9_.-]{0,127}\})*)*$"
+)
+_TEMPLATE_VAR = re.compile(r"\{([A-Za-z][A-Za-z0-9_.-]{0,127})\}")
 _JSON_TYPES = frozenset({"string", "number", "integer", "boolean", "array", "object"})
+_OPENAPI_AUTH_TYPES = frozenset({"apiKey", "http", "oauth2", "openIdConnect"})
+_SWAGGER_AUTH_TYPES = frozenset({"basic", "apiKey", "oauth2"})
+_AUTH_SCHEME_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
 _MAX_STRUCTURE_DEPTH = 64
 _MAX_STRUCTURE_NODES = 10_000
 
 
-def _validate_untrusted_structure(value: Any, *, seen: set[int] | None = None, depth: int = 0, nodes: list[int] | None = None) -> None:
+def _check_encodable(value: str) -> None:
+    """Reject strings that cannot round-trip through UTF-8 (e.g. lone surrogates)."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise StructuredSpecError("specification contains invalid Unicode text") from exc
+
+
+def _validate_untrusted_structure(
+    value: Any,
+    *,
+    seen: set[int] | None = None,
+    depth: int = 0,
+    nodes: list[int] | None = None,
+) -> None:
     """Bound an untrusted parsed tree before normalization or deterministic sorting.
 
     PyYAML aliases may share Python objects or form recursive graphs. Identity
     tracking prevents alias fan-out from being repeatedly traversed, while depth
-    and node caps fail closed for structurally oversized documents.
+    and node caps fail closed for structurally oversized documents. Every string
+    (value and mapping key) is checked for UTF-8 encodability so lone surrogates
+    cannot reach canonical JSON encoding.
     """
     if depth > _MAX_STRUCTURE_DEPTH:
         raise StructuredSpecError("specification nesting exceeds the safe limit")
+    if isinstance(value, str):
+        _check_encodable(value)
+        return
     if not isinstance(value, (dict, list)):
         return
     seen = set() if seen is None else seen
@@ -46,6 +73,7 @@ def _validate_untrusted_structure(value: Any, *, seen: set[int] | None = None, d
         for key, nested in value.items():
             if not isinstance(key, str):
                 raise StructuredSpecError("specification object keys must be strings")
+            _check_encodable(key)
             if key == "$ref":
                 raise StructuredSpecError("$ref is not supported for local normalization")
             _validate_untrusted_structure(nested, seen=seen, depth=depth + 1, nodes=nodes)
@@ -88,10 +116,7 @@ def _safe_descriptor(raw: object) -> str:
     """Return a constant provenance label so local filenames never reach artifacts."""
     if not isinstance(raw, str):
         raise StructuredSpecError("source descriptor is invalid")
-    descriptor = "local-structured-spec"
-    if not descriptor or "/" in descriptor or "\\" in descriptor:
-        raise StructuredSpecError("source descriptor is invalid")
-    return descriptor
+    return "local-structured-spec"
 
 
 def _required_flag(value: object) -> bool:
@@ -165,10 +190,66 @@ def _responses(values: object) -> list[dict[str, str]]:
     for status, response in values.items():
         if not isinstance(status, str) or not re.fullmatch(r"(?:[1-5]\d\d|default)", status) or not isinstance(response, dict):
             raise StructuredSpecError("response is invalid")
-        # Generate a useful normalized summary from the validated status rather
-        # than copying untrusted response prose into an approval-bound artifact.
         result.append({"status": status, "summary": f"HTTP {status} response"})
     return sorted(result, key=lambda response: response["status"])
+
+
+def _authentication(document: dict[str, Any], swagger: bool) -> list[dict[str, str]]:
+    """Normalize security scheme names and types; never include secrets or values."""
+    if swagger:
+        definitions = document.get("securityDefinitions")
+        allowed_types = _SWAGGER_AUTH_TYPES
+    else:
+        components = document.get("components")
+        definitions = components.get("securitySchemes") if isinstance(components, dict) else None
+        allowed_types = _OPENAPI_AUTH_TYPES
+    if definitions is None:
+        return []
+    if not isinstance(definitions, dict):
+        raise StructuredSpecError("security definitions must be an object")
+    result: list[dict[str, str]] = []
+    for name in sorted(definitions):
+        definition = definitions[name]
+        if not isinstance(name, str) or not _AUTH_SCHEME_NAME.fullmatch(name):
+            raise StructuredSpecError("security scheme name is invalid")
+        if not isinstance(definition, dict):
+            raise StructuredSpecError("security scheme must be an object")
+        scheme_type = definition.get("type")
+        if not isinstance(scheme_type, str) or scheme_type not in allowed_types:
+            raise StructuredSpecError("security scheme type is unsupported")
+        entry: dict[str, str] = {"name": name, "type": scheme_type}
+        if scheme_type == "apiKey":
+            location = definition.get("in")
+            if not isinstance(location, str) or location not in {"header", "query"}:
+                raise StructuredSpecError("apiKey scheme must specify in as header or query")
+            entry["in"] = location
+            param_name = definition.get("name")
+            if not isinstance(param_name, str) or not param_name:
+                raise StructuredSpecError("apiKey scheme must specify a parameter name")
+            entry["parameterName"] = param_name
+        elif scheme_type == "http":
+            scheme = definition.get("scheme")
+            if not isinstance(scheme, str) or scheme not in {"basic", "bearer"}:
+                raise StructuredSpecError("http scheme must specify basic or bearer")
+            entry["scheme"] = scheme
+        # oauth2, openIdConnect, basic: name and type only — no URLs, flows, or values.
+        result.append(entry)
+    return result
+
+
+def _validate_path_template(path: str, parameters: list[dict[str, Any]]) -> None:
+    """Ensure every template variable has a matching required path parameter."""
+    template_vars = sorted(set(_TEMPLATE_VAR.findall(path)))
+    path_params = [p for p in parameters if p["in"] == "path"]
+    declared = {p["name"] for p in path_params}
+    for var in template_vars:
+        if var not in declared:
+            raise StructuredSpecError(f"path template variable {{{var}}} has no declared path parameter")
+    for param in path_params:
+        if not param["required"]:
+            raise StructuredSpecError(f"path parameter {param['name']} must be required")
+        if param["name"] not in template_vars:
+            raise StructuredSpecError(f"path parameter {param['name']} does not match any template variable")
 
 
 def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
@@ -186,6 +267,8 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
     else:
         raise StructuredSpecError("only OpenAPI 3.x and Swagger 2.0 are supported")
 
+    authentication = _authentication(document, swagger)
+
     paths = document.get("paths")
     if not isinstance(paths, dict) or not paths:
         raise StructuredSpecError("specification paths must be a non-empty object")
@@ -195,8 +278,11 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
         item = paths[path]
         if not isinstance(path, str) or not _PATH_TEMPLATE.fullmatch(path) or not isinstance(item, dict):
             raise StructuredSpecError("path item is invalid")
+        for key in item:
+            if key in _UNSUPPORTED_METHOD_KEYS:
+                raise StructuredSpecError(f"HTTP method {key.upper()} is not supported for manifest generation")
         common_parameters = item.get("parameters", [])
-        for method in _METHOD_ORDER:
+        for method in _SUPPORTED_METHODS:
             operation = item.get(method)
             if operation is None:
                 continue
@@ -210,6 +296,7 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
             if not isinstance(common_parameters, list) or not isinstance(operation_parameters, list):
                 raise StructuredSpecError("parameters must be an array")
             parameters = _parameters(common_parameters + operation_parameters, swagger)
+            _validate_path_template(path, parameters)
             item_value: dict[str, Any] = {
                 "operationId": operation_id,
                 "method": method.upper(),
@@ -230,6 +317,7 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
         "protocol": "http",
         "source": {"kind": kind, "descriptor": _safe_descriptor(descriptor)},
         "baseUrl": base_url,
+        "authentication": authentication,
         "operations": operations,
     }
     return add_digest(manifest)
