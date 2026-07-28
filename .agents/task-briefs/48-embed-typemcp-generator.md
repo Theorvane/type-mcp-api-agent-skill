@@ -1,8 +1,8 @@
 # Task brief: 48 — embed a TypeMCP project generator in api-to-typemcp
 
-**Status:** Tasks 1–6 complete; Tasks 7–8 pending
+**Status:** Tasks 1–7 complete; Task 8 pending
 **Issue:** https://github.com/Theorvane/type-mcp-api-agent-skill/issues/48
-**Branch:** `feat/48-task6-bounded-intake`
+**Branch:** `feat/48-task7-skill-docs`
 **Owner:** sjungwon03
 
 ## Goal

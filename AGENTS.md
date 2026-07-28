@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`type-mcp-api-agent-skill` ships one executable `api-to-typemcp` skill. Its **bundled skill engine**—under `skills/api-to-typemcp/`—will own deterministic intake, manifest construction, approval state, policy, rendering, and contained verification. Generated projects use the published `@theorvane/type-mcp` npm package and never copy TypeMCP source.
+`type-mcp-api-agent-skill` ships one executable `api-to-typemcp` skill. Its **bundled skill engine**—under `skills/api-to-typemcp/`—owns deterministic intake, manifest construction, approval state, policy, rendering, and contained verification. Generated projects use the published `@theorvane/type-mcp` npm package and never copy TypeMCP source.
 
 ## Source-of-truth hierarchy
 
@@ -31,7 +31,7 @@ When sources conflict, stop and update the lower-priority source before implemen
 4. **All tools, controlled execution.** Generate every approved endpoint tool. `protected-write` operations require exact known IDs in `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS`; unset, malformed, wildcard, duplicate, or unknown entries fail closed **before request construction**.
 5. **Secrets never enter artifacts.** Sanitize source descriptors, redirect targets, evidence URLs/snippets, diagnostics, and local paths before display, hashing, or persistence. Store environment-variable references and mapping names only.
 6. **No unbounded discovery.** Inspect supplied Swagger UI documents/configuration and explicit specs only. Markdown/HTML extraction uses supplied documents only. A bare base URL is never endpoint enumeration permission.
-7. **Contained execution.** Generation and generated-project verification run in a fresh temporary workspace with a scrubbed environment and explicit network policy. Inspect the lockfile and run `npm ci --ignore-scripts` before any lifecycle script. Live authenticated smoke tests require separate explicit approval.
+7. **Contained execution.** Generation and generated-project verification run in a fresh temporary workspace with a scrubbed environment and explicit network policy. Inspect `package.json`, then run `npm install --ignore-scripts` before any lifecycle script. Generated projects currently ship no lockfile, so do not claim lockfile-pinned `npm ci` reproducibility. Live authenticated smoke tests require separate explicit approval.
 8. **Test first.** Every behavior change starts with one focused failing test and records the observed failure in its task brief.
 9. **Safe generated errors.** Generated tools return safe client-facing errors and never expose stacks, credentials, response secrets, or raw upstream diagnostics.
 10. **Final publication confirmation.** Immediately before a generated repository is created or pushed, record owner/org, repository name, visibility, and source branch. Verify the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch.
@@ -59,4 +59,4 @@ git diff --check
 git status --short --branch
 ```
 
-Task 1 creates only structural `scripts/` and `templates/` directories. Task 2 adds executable engine tests; Task 4 adds renderer templates; Task 5 adds contained generated-project E2E. Do not represent those deferred files or behavior as present before their tasks land.
+The Task 1–5 chronology is historical. The bundled engine, renderer templates, and contained generated-project E2E are now implemented; do not describe them as deferred. New transport or registry-release behavior still requires its own reviewed task.

@@ -58,7 +58,25 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
                 self.assertNotIn("type-mcp-api-cli", content)
                 self.assertNotIn("cli compatibility", content)
 
-    def test_validator_enforces_embedded_engine_and_published_runtime(self) -> None:
+    def test_active_source_docs_reject_stale_claims_and_retain_runtime_contract(self) -> None:
+        """Canonical docs must not drift back to unimplemented CLI semantics."""
+        stale_claims = (
+            "`npm ci --ignore-scripts`",
+            "approval challenge",
+            "challenge ID",
+            "RFC 8785/JCS canonical",
+            "implementation is staged",
+            "implementation pending",
+            "supplied file or explicit URL",
+            "Parse remote sources",
+            "Hash fetched bytes",
+        )
+        for relative_path in ACTIVE_SOURCE_DOCS:
+            content = (ROOT / relative_path).read_text(encoding="utf-8")
+            for phrase in stale_claims:
+                with self.subTest(path=relative_path, phrase=phrase):
+                    self.assertNotIn(phrase, content)
+
         for relative_path in (
             "AGENTS.md",
             "README.md",
@@ -96,10 +114,26 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assert_validator_fails_after_removal(".agents/checklists/release-readiness.md", phrase)
 
+    def test_skill_documents_the_executable_bundled_engine_workflow(self) -> None:
+        """Installed agents need exact commands and mandatory safety gates."""
+        content = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
+        for phrase in (
+            "api_to_typemcp.py",
+            "manifest",
+            "approve",
+            "generate",
+            "--confirm-manifest-digest",
+            "controlled temporary output directory",
+            "Immediately before GitHub publication",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, content)
+        self.assertNotIn("executable engine, templates, and generated-project E2E arrive", content)
+
     def test_validator_preserves_execution_and_containment_safety_contracts(self) -> None:
         for relative_path, phrase in (
             ("docs/guides/security-and-publication.md", "before upstream request construction or dispatch"),
-            ("docs/guides/security-and-publication.md", "npm ci --ignore-scripts"),
+            ("docs/guides/security-and-publication.md", "npm install --ignore-scripts"),
         ):
             with self.subTest(path=relative_path, phrase=phrase):
                 self.assert_validator_fails_after_removal(relative_path, phrase)

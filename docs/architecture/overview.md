@@ -1,6 +1,6 @@
 # Architecture overview
 
-**Status:** Embedded-engine migration boundary established; executable engine implementation is staged.
+**Status:** Executable bundled-engine contract implemented; release publication is separate.
 
 ## Skill boundary
 
@@ -17,9 +17,9 @@ flowchart LR
 
 The released `skills/api-to-typemcp/` artifact is the generator delivery unit. Its **bundled skill engine** owns deterministic parsing, normalization, receipt state, policy, rendering, and static verification; it is not a separately released executable. Generated projects use the published `@theorvane/type-mcp` npm package, never a copied implementation or adjacent checkout.
 
-## Staged layout
+## Implemented layout
 
-Task 1 establishes `scripts/` and `templates/` as structural release paths only. Task 2 will add structured-source engine modules and tests; Task 4 will add controlled TypeScript templates; Task 5 will add generated-project E2E verification. Until then, no active documentation may claim the engine can generate a project.
+`skills/api-to-typemcp/` now contains the shipping engine modules, templates, runtime reference, tests, and contained generated-project E2E verification. Future work may add separately reviewed transport/release capabilities, but active documentation must not describe the implemented bundled engine as staged.
 
 ## Responsibilities
 
@@ -40,10 +40,10 @@ Task 1 establishes `scripts/` and `templates/` as structural release paths only.
 
 ## Approval, policy, and publication invariants
 
-- A document-derived manifest is eligible only with an **engine-issued, unexpired, single-use integrity-validated receipt** bound to the current RFC 8785/JCS canonical digest and manifest contract version.
+- A manifest is eligible only with an **engine-issued, unexpired, single-use HMAC-validated receipt** bound to the current deterministic `sha256:` digest. The digest encoding is engine-specific, not RFC 8785/JCS, and the receipt carries no manifest-contract version.
 - `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` grants protected writes only by exact known operation ID. A parser, operation name, or prose cannot classify a mutating method as `read`.
 - Bounded source intake never crawls a bare base origin.
-- Verification first inspects generated metadata and lockfile, runs `npm ci --ignore-scripts`, then performs only contained checks with a local fixture upstream.
+- Verification first inspects generated `package.json`, runs isolated `npm install --ignore-scripts`, then performs only contained checks with a local fixture upstream. Generated projects currently have no lockfile.
 - Publication requires a recorded owner/org, name, visibility, and source-branch confirmation. The actual checked-out/ref-to-publish branch must exactly equal that recorded branch immediately before staging, committing, or pushing.
 
 ## Invariants

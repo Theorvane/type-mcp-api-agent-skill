@@ -1,10 +1,10 @@
 # type-mcp-api-agent-skill
 
-The published `api-to-typemcp` Hermes skill is the single delivery unit for API-to-TypeMCP generation. Its **bundled skill engine** will turn approved API documentation into standalone TypeScript MCP projects that depend on the published [`@theorvane/type-mcp`](https://www.npmjs.com/package/@theorvane/type-mcp) package.
+The published `api-to-typemcp` Hermes skill is the single delivery unit for API-to-TypeMCP generation. Its **bundled skill engine** accepts bounded supplied sources, produces approved secret-free manifests, and renders standalone TypeScript MCP projects that depend on the published [`@theorvane/type-mcp`](https://www.npmjs.com/package/@theorvane/type-mcp) package.
 
 ## Status
 
-The repository has migrated to the embedded-engine boundary. The executable engine and TypeScript templates are intentionally deferred to the next implementation tasks; this Task 1 change establishes the documentation, CI, and release boundary and does not claim generation is already implemented.
+Tasks 1–7 of embedded-engine delivery are implemented on `dev`: structured OpenAPI/Swagger intake, bounded Swagger UI and Markdown/HTML evidence intake, digest-bound approval, controlled TypeScript rendering, contained project E2E verification, and runtime/package-contract documentation. Skill version publication remains a separate release-preparation change after this implementation sequence.
 
 ## Safety contract
 
@@ -12,7 +12,7 @@ The repository has migrated to the embedded-engine boundary. The executable engi
 - **Bounded sources:** accept supplied OpenAPI/Swagger files or explicit documentation only; never enumerate a bare API origin.
 - **Secrets stay external:** artifacts may contain environment-variable names and mappings, never values.
 - **Protected writes fail closed:** `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` must authorize an exact known operation ID before request construction.
-- **Contained verification:** inspect generated dependencies, use `npm ci --ignore-scripts`, and verify only in a fresh scrubbed workspace.
+- **Contained verification:** inspect generated `package.json`, use isolated `npm install --ignore-scripts`, and verify only in a fresh scrubbed workspace. Generated projects currently have no lockfile.
 - **Publication is separate:** immediately before publication, confirm owner/org, repository name, visibility, and source branch; verify the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch.
 
 ## Install the released skill
@@ -25,9 +25,10 @@ The repository has migrated to the embedded-engine boundary. The executable engi
 
 ```text
 .
-├── skills/api-to-typemcp/       # published skill and future bundled engine
-│   ├── scripts/                 # Task 2 engine modules
-│   └── templates/               # Task 4 controlled TypeScript templates
+├── skills/api-to-typemcp/       # published skill and bundled engine
+│   ├── scripts/                 # deterministic intake, approval, rendering, verification
+│   ├── templates/               # controlled TypeScript templates
+│   └── references/              # published TypeMCP runtime contract
 ├── docs/                        # product, architecture, contract, and safety policy
 ├── .agents/                     # harness and documentation regression checks
 └── .github/workflows/           # documentation and bundled-engine CI
@@ -51,4 +52,4 @@ git diff --check
 - Approved plans: `docs/planning/`
 - Skill instructions and release artifact: `skills/api-to-typemcp/SKILL.md`
 
-Read `AGENTS.md` before changing the embedded engine. Do not represent planned engine behavior as implemented behavior.
+Read `AGENTS.md` before changing the bundled engine. Do not represent planned HTTP transport or public registry publication as implemented behavior before their separate reviewed releases.

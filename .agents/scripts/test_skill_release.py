@@ -301,6 +301,46 @@ class SkillReleaseTests(unittest.TestCase):
 
         self.assertEqual(calls.count(("POST", "/skills/api-to-typemcp/versions")), 1)
 
+    def test_release_contract_includes_complete_bundled_runtime_tree(self) -> None:
+        """Preflight must enumerate every renderer-required file, not directories."""
+        required = (
+            "SKILL.md",
+            "requirements.txt",
+            "scripts/api_to_typemcp.py",
+            "scripts/intake.py",
+            "scripts/documents.py",
+            "scripts/swagger_ui.py",
+            "scripts/structured_specs.py",
+            "scripts/manifest.py",
+            "scripts/approval.py",
+            "scripts/policy.py",
+            "scripts/render.py",
+            "scripts/verify_generated.py",
+            "templates/typescript-stdio/package.json.tmpl",
+            "templates/typescript-stdio/tsconfig.json.tmpl",
+            "templates/typescript-stdio/README.md.tmpl",
+            "templates/typescript-stdio/.env.example.tmpl",
+            "templates/typescript-stdio/src/index.ts.tmpl",
+            "templates/typescript-stdio/src/api-client.ts.tmpl",
+            "templates/typescript-stdio/src/policy.ts.tmpl",
+            "references/type-mcp-runtime.md",
+        )
+        skill_root = ROOT / "skills/api-to-typemcp"
+        for relative in required:
+            with self.subTest(relative=relative):
+                self.assertTrue((skill_root / relative).is_file())
+
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("Stage and verify bundled runtime artifact", workflow)
+        for relative in required:
+            with self.subTest(workflow_file=relative):
+                self.assertIn(f"skills/api-to-typemcp/{relative}", workflow)
+        self.assertIn("tar -tf", workflow)
+        self.assertLess(
+            workflow.index("Stage and verify bundled runtime artifact"),
+            workflow.index("Register the released skill in ClawHub"),
+        )
+
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
 

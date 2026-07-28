@@ -27,6 +27,7 @@ import structured_specs  # noqa: E402
 import manifest as manifest_mod  # noqa: E402
 import approval  # noqa: E402
 import render  # noqa: E402
+from swagger_ui import MAX_SWAGGER_UI_BYTES, SwaggerUIError, extract_spec_reference  # noqa: E402
 
 
 def _emit(payload: dict) -> None:
@@ -86,6 +87,29 @@ def _validate_output_target(output: str, replace: bool) -> Path:
 # ---------------------------------------------------------------------------
 
 def _cmd_inspect(args: argparse.Namespace) -> None:
+    # Swagger UI discovery is deliberately bounded to the supplied HTML. It
+    # reports only a config reference; callers must separately supply the
+    # structured spec and the CLI never fetches it.
+    candidate = Path(args.file)
+    if candidate.suffix.lower() in {".html", ".htm"} and candidate.is_file():
+        try:
+            if candidate.stat().st_size > MAX_SWAGGER_UI_BYTES:
+                raise intake.IntakeError(
+                    f"Swagger UI input exceeds {MAX_SWAGGER_UI_BYTES} byte limit"
+                )
+            content = candidate.read_text(encoding="utf-8")
+            discovery = extract_spec_reference(content)
+        except (OSError, UnicodeDecodeError) as exc:
+            raise intake.IntakeError("input must be UTF-8 text") from exc
+        except SwaggerUIError as exc:
+            raise intake.IntakeError(str(exc)) from exc
+        if discovery is not None:
+            _emit({
+                "source": {"kind": discovery["source_kind"], "descriptor": "local-swagger-ui"},
+                "spec_url": discovery["spec_url"],
+            })
+            return
+
     _path, document, descriptor = intake.load_supplied_source(args.file, base_url=args.base_url)
     m = structured_specs.build_manifest(document, descriptor)
 
@@ -153,14 +177,15 @@ def _cmd_generate(args: argparse.Namespace) -> None:
             f"current manifest digest {current_digest}; the manifest has changed"
         )
 
+    # Reject local output-target mistakes before consuming the single-use
+    # approval receipt, so the operator can correct a path and retry.
+    output_dir = _validate_output_target(args.output, args.replace)
+
     # Validate the isolated-state approval receipt (single-use, HMAC-bound).
     try:
         approval.validate_and_consume_receipt(current_digest)
     except approval.ApprovalError as exc:
         _safe_error(str(exc))
-
-    # Validate output target safety.
-    output_dir = _validate_output_target(args.output, args.replace)
 
     # Render the full TypeMCP stdio project.
     written: list[str] = []

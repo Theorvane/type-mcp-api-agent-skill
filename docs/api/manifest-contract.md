@@ -1,6 +1,6 @@
 # API manifest and embedded-engine contract
 
-**Status:** Contract approved; bundled-engine implementation is staged.
+**Status:** Executable bundled-engine contract implemented; release publication is separate.
 
 The manifest is the **bundled skill engine** review boundary. It is versioned, JSON-serializable, secret-free, schema-validated, and canonically hashed. Persisted/displayed source identifiers and evidence are sanitized under `docs/guides/security-and-publication.md`; original URLs, redirects, local paths, credentials, and raw private diagnostics are never manifest fields.
 
@@ -11,32 +11,24 @@ The manifest is not an approval credential. A document-derived manifest becomes 
 | Stage | Input | Output | Side-effect rule |
 | --- | --- | --- | --- |
 | `inspect` | supplied source descriptor | sanitized provenance and safe diagnostics | no generated files or upstream API calls |
-| `manifest` | inspected source | validated manifest plus approval challenge when required | no generated files |
-| `approve` | engine state, challenge ID, exact digest, explicit confirmation | engine-issued isolated receipt | no generated files or upstream API calls |
+| `manifest` | inspected source | validated manifest and deterministic digest | no generated files |
+| `approve` | engine state and exact digest | engine-issued isolated HMAC receipt | no generated files or upstream API calls |
 | `generate` | eligible manifest, valid receipt if required, confirmed output path | rendered project and generation metadata | local output only; no GitHub publication |
 | `verify` | generated project copy | contained static/install/test evidence | no live upstream without separate approval |
 
-Exact commands are added with the executable engine in later tasks; these stages define its contract and do not claim a current implementation.
+The entrypoint is `skills/api-to-typemcp/scripts/api_to_typemcp.py`. It exposes `inspect`, `manifest`, `approve`, and `generate` for supplied local sources. `manifest` emits canonical JSON including `digest`; `approve --manifest-digest <digest>` issues the single-use receipt; `generate --confirm-manifest-digest <digest> --output <existing-empty-dir>` consumes it and renders the stdio project. Markdown/HTML requires an explicit `--base-url`; supplied Swagger UI HTML is inspected in-memory only and its configured structured spec must then be supplied separately. These commands never fetch/crawl an origin or publish GitHub output.
 
-## Schema and canonical digest
+## Implemented manifest and digest
 
-The schema is closed (`additionalProperties: false`) at every contract object. Unknown fields, duplicate JSON members, non-finite numbers, invalid Unicode, and schema-invalid payloads are rejected before digesting or approval.
+The current manifest is a normalized JSON object with `schema`, `version`, `protocol`, `source`, `baseUrl`, `operations`, `authentication`, and `digest`. `warnings` may be present only when intake produces normalized warnings; it is not a required top-level field. Intake rejects duplicate JSON/YAML keys, non-finite numbers, malformed Unicode, unsafe nesting/aliases, and unsupported source shapes before construction.
 
-The canonical digest algorithm is fixed for a manifest version:
+`digest` is lowercase `sha256:<hex>` over deterministic compact UTF-8 JSON: sorted keys, no insignificant whitespace, `ensure_ascii=False`, and no non-finite numbers. It covers every manifest field except `digest` itself. This is an engine-specific deterministic encoding; it is **not** a claim of RFC 8785/JCS conformance.
 
-1. Validate the manifest against its exact closed schema.
-2. Form the logical digest payload: `manifestVersion`, `engineProtocolVersion`, `source`, `baseUrl`, `operations`, `authentication`, and `warnings`.
-3. Serialize with [RFC 8785 JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785).
-4. Compute SHA-256 over those UTF-8 bytes as lowercase `sha256:<hex>`.
-5. Store it as `manifestDigest`.
+## Implemented receipt gate
 
-`manifestDigest`, `approval`, and receipt bytes/paths are excluded from the digest payload. A copied or edited manifest cannot forge a receipt.
+Every `generate` invocation requires its exact current digest in `--confirm-manifest-digest` and an approval receipt from `approve --manifest-digest <digest>`. The receipt is held in isolated process-owned state and contains only `manifest_digest`, `issued_at`, `expires_at`, `nonce`, and HMAC `hmac`.
 
-## Required fields and approval
-
-Top-level fields are `manifestVersion`, `engineProtocolVersion`, `manifestDigest`, `source`, `baseUrl`, `operations`, `authentication`, `warnings`, and `approval`. Source kind is exactly `openapi`, `swagger`, `swagger-ui`, `markdown`, or `html`. Markdown/HTML evidence makes a manifest document-derived.
-
-Document-derived approval requires explicit confirmation of the exact current digest. The isolated engine receipt includes its contract version, challenge ID, digest, manifest/engine contract versions, issue/expiry times, confirmation method, and authenticated integrity value. Validation requires the matching state, valid integrity value, current digest/version, unexpired state, and unused receipt; successful generation consumes it.
+Validation recomputes the HMAC over the digest, times, and nonce using the state-local secret; it requires the matching digest, a readable unexpired receipt, and valid integrity data. Generation validates the output target first, then consumes the receipt before rendering, making it single-use once local preconditions pass. A copied or edited manifest cannot use a receipt bound to a different digest; a receipt is not an audit record, a challenge protocol, or a publication authorization.
 
 ## Normative execution policy
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,60 @@ class EngineCliTests(unittest.TestCase):
         self.assertEqual(payload["operationCount"], 2)
         self.assertNotIn(str(FIXTURES), result.stdout)
         self.assertNotIn("fixture-secret-query", result.stdout)
+
+    def test_inspect_discovers_only_supplied_swagger_ui_config(self) -> None:
+        """Swagger UI inspect returns a reference but never fetches its spec."""
+        result = run_engine("inspect", "--file", str(FIXTURES / "swagger-ui.html"), "--json")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload, {
+            "source": {"kind": "swagger-ui-config", "descriptor": "local-swagger-ui"},
+            "spec_url": "/v3/openapi.json",
+        })
+        self.assertNotIn(str(FIXTURES), result.stdout)
+
+    def test_swagger_ui_cli_rejects_oversized_file_before_reading(self) -> None:
+        """Bounded CLI discovery must stat-limit HTML before reading it."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "swagger-ui.html"
+            path.write_bytes(b"x" * (2 * 1024 * 1024 + 1))
+            result = run_engine("inspect", "--file", str(path), "--json")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Swagger UI input exceeds", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_failed_output_validation_does_not_consume_receipt(self) -> None:
+        """A local output-target error must leave the approved receipt usable."""
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state"
+            missing_output = Path(directory) / "missing-output"
+            valid_output = Path(directory) / "valid-output"
+            valid_output.mkdir()
+            env = os.environ.copy()
+            env["TYPE_MCP_APPROVAL_STATE_DIR"] = str(state)
+            fixture = FIXTURES / "petstore.openapi.json"
+            manifest = run_engine("manifest", "--file", str(fixture), "--json")
+            digest = json.loads(manifest.stdout)["digest"]
+            approved = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "approve", "--file", str(fixture), "--manifest-digest", digest],
+                text=True, capture_output=True, env=env, check=False,
+            )
+            self.assertEqual(approved.returncode, 0, approved.stderr)
+            failed = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "generate", "--file", str(fixture),
+                 "--confirm-manifest-digest", digest, "--output", str(missing_output)],
+                text=True, capture_output=True, env=env, check=False,
+            )
+            self.assertEqual(failed.returncode, 2)
+            self.assertIn("output directory does not exist", failed.stderr)
+            generated = subprocess.run(
+                [sys.executable, str(ENTRYPOINT), "generate", "--file", str(fixture),
+                 "--confirm-manifest-digest", digest, "--output", str(valid_output)],
+                text=True, capture_output=True, env=env, check=False,
+            )
+            self.assertEqual(generated.returncode, 0, generated.stderr)
 
     def test_rejects_malformed_and_unsupported_local_documents_without_traceback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
