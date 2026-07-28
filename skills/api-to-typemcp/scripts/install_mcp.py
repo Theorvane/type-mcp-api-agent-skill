@@ -71,6 +71,13 @@ def _assert_current_identity(parent_fd: int, name: str, expected: os.stat_result
         raise InstallError("configuration target changed during installation")
 
 
+def _assert_current_state(parent_fd: int, name: str, expected: os.stat_result, expected_digest: str) -> None:
+    _assert_current_identity(parent_fd, name, expected)
+    current, _ = _read_regular(parent_fd, name)
+    if "sha256:" + sha256(current).hexdigest() != expected_digest:
+        raise InstallError("configuration content changed during installation")
+
+
 def _exclusive_backup(parent_fd: int, backup_name: str, content: bytes) -> None:
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW
     try:
@@ -88,8 +95,11 @@ def _exclusive_backup(parent_fd: int, backup_name: str, content: bytes) -> None:
         os.close(fd)
 
 
-def _atomic_replace(parent_fd: int, name: str, content: bytes, expected: os.stat_result) -> None:
-    _assert_current_identity(parent_fd, name, expected)
+def _atomic_replace(parent_fd: int, name: str, content: bytes, expected: os.stat_result, expected_digest: str | None = None) -> None:
+    if expected_digest is None:
+        _assert_current_identity(parent_fd, name, expected)
+    else:
+        _assert_current_state(parent_fd, name, expected, expected_digest)
     temp_name = f".{name}.{secrets.token_hex(16)}.tmp"
     fd = os.open(temp_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW, 0o600, dir_fd=parent_fd)
     try:
@@ -150,6 +160,9 @@ def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bo
             except (UnicodeDecodeError, UnsupportedConfigFormat) as exc:
                 raise InstallError("Codex configuration is not safely editable") from exc
         _exclusive_backup(parent_fd, target.backup_path.name, original)
+        original_digest = "sha256:" + sha256(original).hexdigest()
+        # Verify after backup creation but before beginning any replacement.
+        _assert_current_state(parent_fd, path.name, identity, original_digest)
         try:
             _atomic_replace(parent_fd, path.name, updated, identity)
             if verifier is not None and not verifier():

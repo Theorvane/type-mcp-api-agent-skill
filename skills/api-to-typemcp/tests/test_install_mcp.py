@@ -5,10 +5,12 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "skills/api-to-typemcp/scripts"))
 from agent_clients import McpServerSpec  # noqa: E402
+import install_mcp as installer  # noqa: E402
 from install_mcp import InstallError, apply_json_plan, apply_json_target, apply_native_plan  # noqa: E402
 from install_plan import build_plan, issue_install_receipt  # noqa: E402
 
@@ -48,6 +50,18 @@ class AtomicInstallTests(unittest.TestCase):
 
         self.assertEqual(self.config.read_bytes(), self.original)
         self.assertEqual(backup.read_text(encoding="utf-8"), "attacker backup")
+
+    def test_apply_rechecks_content_after_backup_before_replace(self) -> None:
+        original_backup = installer._exclusive_backup
+        def race(parent_fd: int, name: str, content: bytes) -> None:
+            original_backup(parent_fd, name, content)
+            self.config.write_text('{"mcpServers":{"raced":{}}}\n', encoding="utf-8")
+        issue_install_receipt(self.plan)
+
+        with patch.object(installer, "_exclusive_backup", side_effect=race), self.assertRaises(InstallError):
+            apply_json_target(self.plan.targets[0], self.spec, plan=self.plan)
+
+        self.assertIn("raced", json.loads(self.config.read_text())["mcpServers"])
     def test_failed_verification_restores_target_backup(self) -> None:
         issue_install_receipt(self.plan)
         with self.assertRaises(InstallError):
