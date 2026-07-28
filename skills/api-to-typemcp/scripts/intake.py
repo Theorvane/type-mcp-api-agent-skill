@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -90,3 +91,59 @@ def load_local_document(file_name: str) -> tuple[Path, dict[str, Any]]:
     if not isinstance(document, dict):
         raise IntakeError("specification root must be an object")
     return path, document
+
+
+def load_supplied_source(file_name: str, *, base_url: str | None = None) -> tuple[Path, dict[str, Any], str]:
+    """Load one explicit local structured spec or supplied API-reference document.
+
+    Documents never cause network discovery. They require an explicit http(s)
+    base URL and are converted to a constrained OpenAPI-shaped in-memory model
+    so they pass through the normal digest, receipt, and policy gates.
+    """
+    path = Path(file_name)
+    suffix = path.suffix.lower()
+    if suffix in {".json", ".yaml", ".yml"}:
+        loaded_path, document = load_local_document(file_name)
+        return loaded_path, document, "local-structured-spec"
+    if suffix not in {".md", ".html", ".htm"}:
+        raise IntakeError("input must be JSON, YAML, Markdown, or HTML")
+    if not path.is_file():
+        raise IntakeError("input must be an existing local file")
+    try:
+        if path.stat().st_size > MAX_SPEC_BYTES:
+            raise IntakeError(f"input exceeds {MAX_SPEC_BYTES} byte limit")
+        content = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise IntakeError("input must be UTF-8 text") from exc
+    if not base_url:
+        raise IntakeError("document input requires an explicit --base-url")
+    try:
+        from documents import DocumentError, extract_operations
+        source_kind = "markdown" if suffix == ".md" else "html"
+        operations = extract_operations(content, source_kind=source_kind)
+    except DocumentError as exc:
+        raise IntakeError(str(exc)) from exc
+    if not operations:
+        raise IntakeError("document contains no explicit HTTP method/path evidence")
+
+    paths: dict[str, dict[str, Any]] = {}
+    for index, op in enumerate(operations, start=1):
+        path_item = paths.setdefault(op["path"], {})
+        operation_id = f"document_{op['method'].lower()}_{index}"
+        path_parameters = [
+            {"name": name, "in": "path", "required": True, "schema": {"type": "string"}}
+            for name in re.findall(r"\{([A-Za-z][A-Za-z0-9_.-]{0,127})\}", op["path"])
+        ]
+        path_item[op["method"].lower()] = {
+            "operationId": operation_id,
+            "parameters": path_parameters,
+            "x-api-to-typemcp-evidence": op["evidence"],
+            "responses": {"200": {"description": "Document-derived operation"}},
+        }
+    document = {
+        "openapi": "3.0.3",
+        "info": {"title": "Document-derived API", "version": "0.0.0"},
+        "servers": [{"url": base_url}],
+        "paths": paths,
+    }
+    return path, document, f"local-{source_kind}-document"

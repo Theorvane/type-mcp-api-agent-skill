@@ -86,8 +86,8 @@ def _validate_output_target(output: str, replace: bool) -> Path:
 # ---------------------------------------------------------------------------
 
 def _cmd_inspect(args: argparse.Namespace) -> None:
-    _path, document = intake.load_local_document(args.file)
-    m = structured_specs.build_manifest(document, "local-structured-spec")
+    _path, document, descriptor = intake.load_supplied_source(args.file, base_url=args.base_url)
+    m = structured_specs.build_manifest(document, descriptor)
 
     # Detect source kind from the document itself.
     if "openapi" in document:
@@ -107,8 +107,8 @@ def _cmd_inspect(args: argparse.Namespace) -> None:
 
 
 def _cmd_manifest(args: argparse.Namespace) -> None:
-    _path, document = intake.load_local_document(args.file)
-    m = structured_specs.build_manifest(document, "local-structured-spec")
+    _path, document, descriptor = intake.load_supplied_source(args.file, base_url=args.base_url)
+    m = structured_specs.build_manifest(document, descriptor)
     if args.json:
         _emit(m)
     else:
@@ -121,8 +121,8 @@ def _cmd_manifest(args: argparse.Namespace) -> None:
 
 def _cmd_approve(args: argparse.Namespace) -> None:
     # Compute current digest to verify the caller's stated digest matches.
-    _path, document = intake.load_local_document(args.file)
-    m = structured_specs.build_manifest(document, "local-structured-spec")
+    _path, document, descriptor = intake.load_supplied_source(args.file, base_url=args.base_url)
+    m = structured_specs.build_manifest(document, descriptor)
     current_digest = m["digest"]
 
     if args.manifest_digest != current_digest:
@@ -141,8 +141,8 @@ def _cmd_approve(args: argparse.Namespace) -> None:
 
 def _cmd_generate(args: argparse.Namespace) -> None:
     # Build manifest to get current digest.
-    _path, document = intake.load_local_document(args.file)
-    m = structured_specs.build_manifest(document, "local-structured-spec")
+    _path, document, descriptor = intake.load_supplied_source(args.file, base_url=args.base_url)
+    m = structured_specs.build_manifest(document, descriptor)
     current_digest = m["digest"]
 
     # Structured specs require explicit digest confirmation on the generate
@@ -191,17 +191,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # inspect
     p_inspect = sub.add_parser("inspect", help="Summarize a local structured spec.")
-    p_inspect.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_inspect.add_argument("--file", required=True, help="Path to supplied local JSON/YAML/Markdown/HTML input.")
+    p_inspect.add_argument("--base-url", help="Required explicit http(s) base URL for Markdown/HTML input.")
     p_inspect.add_argument("--json", action="store_true", help="Emit full JSON output.")
 
     # manifest
     p_manifest = sub.add_parser("manifest", help="Build a normalized manifest.")
-    p_manifest.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_manifest.add_argument("--file", required=True, help="Path to supplied local input.")
+    p_manifest.add_argument("--base-url", help="Required explicit http(s) base URL for Markdown/HTML input.")
     p_manifest.add_argument("--json", action="store_true", help="Emit the full manifest JSON.")
 
     # approve
     p_approve = sub.add_parser("approve", help="Issue an approval receipt for the current digest.")
-    p_approve.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_approve.add_argument("--file", required=True, help="Path to supplied local input.")
+    p_approve.add_argument("--base-url", help="Required explicit http(s) base URL for Markdown/HTML input.")
     p_approve.add_argument(
         "--manifest-digest",
         required=True,
@@ -210,7 +213,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # generate
     p_generate = sub.add_parser("generate", help="Generate a TypeMCP project (Task 3 gate).")
-    p_generate.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_generate.add_argument("--file", required=True, help="Path to supplied local input.")
+    p_generate.add_argument("--base-url", help="Required explicit http(s) base URL for Markdown/HTML input.")
     p_generate.add_argument("--output", required=True, help="Output directory (must exist and be empty unless --replace).")
     p_generate.add_argument("--replace", action="store_true", help="Allow writing into a non-empty output directory.")
     p_generate.add_argument(

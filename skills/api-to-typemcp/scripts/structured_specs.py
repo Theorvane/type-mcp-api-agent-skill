@@ -113,10 +113,16 @@ def _swagger_base_url(document: dict[str, Any]) -> str:
 
 
 def _safe_descriptor(raw: object) -> str:
-    """Return a constant provenance label so local filenames never reach artifacts."""
-    if not isinstance(raw, str):
+    """Return an approved constant provenance label without local filenames."""
+    allowed = frozenset({
+        "local-structured-spec",
+        "local-markdown-document",
+        "local-html-document",
+        "swagger-ui-config",
+    })
+    if not isinstance(raw, str) or raw not in allowed:
         raise StructuredSpecError("source descriptor is invalid")
-    return "local-structured-spec"
+    return raw
 
 
 def _required_flag(value: object) -> bool:
@@ -297,6 +303,13 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
                 raise StructuredSpecError("parameters must be an array")
             parameters = _parameters(common_parameters + operation_parameters, swagger)
             _validate_path_template(path, parameters)
+            evidence = operation.get("x-api-to-typemcp-evidence")
+            if not (
+                isinstance(evidence, dict)
+                and isinstance(evidence.get("line"), int)
+                and isinstance(evidence.get("snippet"), str)
+            ):
+                evidence = {"source": "structured-spec"}
             item_value: dict[str, Any] = {
                 "operationId": operation_id,
                 "method": method.upper(),
@@ -304,7 +317,7 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
                 "parameters": parameters,
                 "requestBody": _request_body(operation, swagger),
                 "responses": _responses(operation.get("responses")),
-                "evidence": {"source": "structured-spec"},
+                "evidence": evidence,
                 "status": "ready",
                 "policy": classify_method(method),
             }
