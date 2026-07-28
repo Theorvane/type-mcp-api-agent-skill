@@ -69,7 +69,7 @@ def main() -> int:
                 return 1
 
     stale_claims = (
-        "`npm ci --ignore-scripts`",
+
         "approval challenge",
         "challenge ID",
         "RFC 8785/JCS canonical",
@@ -89,9 +89,9 @@ def main() -> int:
     contract_files = {
         "AGENTS.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest before generation", "before request construction"),
         "README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest first", "Contained verification"),
-        "docs/architecture/overview.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "single-use HMAC-validated receipt", "npm install --ignore-scripts"),
+        "docs/architecture/overview.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "single-use HMAC-validated receipt", "npm ci --ignore-scripts"),
         "docs/api/manifest-contract.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "engine-specific deterministic encoding", "receipt is not an audit record"),
-        "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm install --ignore-scripts", "actual checked-out/ref-to-publish branch"),
+        "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm ci --ignore-scripts", "actual checked-out/ref-to-publish branch"),
         "docs/planning/README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "protected-write authorization before request construction"),
         "skills/api-to-typemcp/SKILL.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before URL, query, headers, body, authentication, or dispatch"),
         ".agents/checklists/release-readiness.md": (

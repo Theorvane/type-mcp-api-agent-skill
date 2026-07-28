@@ -46,7 +46,7 @@ Generation and verification execute untrusted generated code/dependencies, so th
 1. Create a fresh directory owned by the current process as the only engine/output working directory.
 2. Use a scrubbed environment: retain only required basics (`PATH`, isolated temp/home, locale); remove credentials, git configuration, cloud variables, npm auth, proxies unless explicitly approved, and inherited API endpoints.
 3. Default to no outbound network except an explicitly approved pinned npm registry fetch. Do not make upstream API requests in normal verification.
-4. Inspect generated `package.json` before installation. The generated project intentionally has no lockfile, so contained verification establishes a fresh isolated dependency tree with `npm install --ignore-scripts`; it does not claim lockfile/integrity reproducibility. The project must declare published `@theorvane/type-mcp`, never a file/git/local dependency.
+4. Inspect generated `package.json` and `package-lock.json` before installation. Contained verification installs exactly that dependency graph with `npm ci --ignore-scripts`, lifecycle scripts disabled, and inherited npm proxy settings cleared. The project must declare published `@theorvane/type-mcp`, never a file/git/local dependency. This process boundary does not replace container/VM/sandbox isolation for an untrusted dependency graph.
 5. Run lint, typecheck, tests, and build only inside containment after inspection.
 6. Use an official SDK transport and local fixture/mock upstream for the MCP smoke test; prove denied writes make no upstream request.
 7. A live authenticated upstream smoke test requires separate explicit user approval naming the upstream and permitted operations.

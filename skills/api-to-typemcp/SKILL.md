@@ -8,6 +8,16 @@ metadata:
   hermes:
     tags: [mcp, api, openapi, swagger, code-generation, type-mcp]
     related_skills: []
+  openclaw:
+    requires:
+      bins: [python3, node, npm]
+    envVars:
+      - name: TYPE_MCP_APPROVAL_STATE_DIR
+        required: false
+        description: Isolated directory for single-use generation approvals.
+      - name: TYPE_MCP_BASE_URL
+        required: false
+        description: Local test upstream used only by contained verification.
 ---
 
 # API to TypeMCP
@@ -21,6 +31,14 @@ Generated projects depend only on published `@theorvane/type-mcp@0.2.0`; they ne
 ## When to use
 
 Use this skill with a **supplied local** OpenAPI 3.x / Swagger 2.0 JSON/YAML file, supplied Swagger UI HTML, or supplied Markdown/HTML API reference. Do not use it to crawl a bare origin, infer undocumented operations, make mutating calls by default, or publish without explicit final confirmation.
+
+## Execution permissions and containment boundary
+
+The engine reads only the user-supplied source and files bundled with this skill. It writes only the caller-created output directory and the optional `TYPE_MCP_APPROVAL_STATE_DIR`; it never modifies an upstream API or publishes a repository without the separate explicit gates below.
+
+The engine invokes `python3`. Optional generated-project verification additionally invokes `npm` and `node`, uses a fresh temporary workspace, passes a credential-scrubbed environment, disables inherited npm proxy settings and lifecycle scripts, and installs exactly the generated `package-lock.json` graph with `npm ci`. That install requires outbound access to the npm registry; the generator itself performs no network fetch or crawling, and the smoke test targets only a caller-provided local test upstream.
+
+This verifier is **process containment**, not a claim of kernel or network isolation. Run it in a container, VM, or an equivalent host sandbox when the generated project or its dependency installation is untrusted.
 
 ## Bundled engine workflow
 
@@ -64,7 +82,7 @@ Swagger UI discovery is performed by `inspect` in-memory and returns only an exp
 2. **Receipt gate.** `approve` issues a HMAC-protected, digest-bound, single-use receipt. A changed, expired, tampered, or already-consumed receipt stops `generate`.
 3. **Output gate.** The output directory must already exist and be empty unless `--replace` is explicitly supplied. Symlinks and `..` traversal are rejected.
 4. **Runtime policy.** `GET`/`HEAD`/`OPTIONS` are read operations. `POST`/`PUT`/`PATCH`/`DELETE` are protected writes and require exact known IDs in `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` **before URL, query, headers, body, authentication, or dispatch**. Unknown methods deny.
-5. **Containment.** Verify generated projects in a scrubbed temporary workspace, with no inherited credentials, dependency inspection, no-lifecycle installation, typecheck, tests, build, and local MCP stdio smoke.
+5. **Containment.** Verify generated projects in a scrubbed temporary workspace, after package inspection and with a generated lockfile. Use `npm ci --ignore-scripts` with inherited proxy settings disabled, then typecheck, test, build, and run a local MCP stdio smoke test. Use a container, VM, or equivalent host sandbox when the project or dependency graph is untrusted.
 6. **Publication.** **Immediately before GitHub publication**, record owner/org, repository name, visibility, and source branch. Resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Ask for explicit user confirmation before the publication action.
 
 ## Runtime compatibility
@@ -78,6 +96,6 @@ Read [references/type-mcp-runtime.md](references/type-mcp-runtime.md) before mod
 - [ ] Digest approval and a valid single-use receipt precede generation.
 - [ ] Output target passed the empty/replace and traversal/symlink safety gates.
 - [ ] Protected writes are authorized before request construction.
-- [ ] Generated project uses published `@theorvane/type-mcp@0.2.0` only.
-- [ ] Contained install/typecheck/test/build/MCP smoke passes.
+- [ ] Generated project uses published `@theorvane/type-mcp@0.2.0` only and includes a reviewed `package-lock.json`.
+- [ ] Contained `npm ci --ignore-scripts`/typecheck/test/build/MCP smoke passes; external sandboxing is used for untrusted dependency installation.
 - [ ] Immediately before GitHub publication, user confirms owner/name/visibility/source branch and the resolved branch matches.
