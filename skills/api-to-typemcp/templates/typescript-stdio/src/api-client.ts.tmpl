@@ -16,7 +16,8 @@ export class ApiClient {
       body?: unknown;
     },
   ): Promise<unknown> {
-    const url = new URL(path, this.baseUrl);
+    const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+    const url = new URL(normalizedPath, this.baseUrl + "/");
     if (options?.query) {
       for (const [key, value] of Object.entries(options.query)) {
         if (value !== "") url.searchParams.set(key, value);

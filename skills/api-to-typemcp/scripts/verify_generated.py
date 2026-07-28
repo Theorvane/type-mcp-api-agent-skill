@@ -31,10 +31,7 @@ from typing import Any
 # Environment scrubbing
 # ---------------------------------------------------------------------------
 
-_SAFE_ENV_KEYS = frozenset({
-    "PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "SHELL",
-    "NODE_OPTIONS", "NODE_PATH",
-})
+_SAFE_ENV_KEYS = frozenset({"PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM"})
 
 _CREDENTIAL_PREFIXES = (
     "AWS_", "AZURE_", "GCP_", "GOOGLE_", "GITHUB_", "GH_",
@@ -82,6 +79,8 @@ def inspect_package(project_dir: str | Path) -> dict[str, Any]:
     pkg_path = Path(project_dir) / "package.json"
     pkg = json.loads(pkg_path.read_text())
     violations: list[str] = []
+    if not (Path(project_dir) / "package-lock.json").is_file():
+        violations.append("package-lock.json is required")
     for section in ("dependencies", "devDependencies"):
         for name, version in pkg.get(section, {}).items():
             for prefix in _PROHIBITED_DEP_PREFIXES:
@@ -134,7 +133,7 @@ _SMOKE_READ_MJS = textwrap.dedent("""\
       command: "node",
       args: ["dist/index.js"],
       cwd: process.cwd(),
-      env: { ...process.env },
+      env: { TYPE_MCP_BASE_URL: process.env.TYPE_MCP_BASE_URL, PATH: process.env.PATH },
     });
 
     const client = new Client({ name: "smoke-read", version: "1.0.0" });
@@ -166,7 +165,7 @@ _SMOKE_WRITE_DENY_MJS = textwrap.dedent("""\
       command: "node",
       args: ["dist/index.js"],
       cwd: process.cwd(),
-      env: { ...process.env },
+      env: { TYPE_MCP_BASE_URL: process.env.TYPE_MCP_BASE_URL, PATH: process.env.PATH },
     });
 
     const client = new Client({ name: "smoke-write-deny", version: "1.0.0" });
@@ -260,6 +259,12 @@ def verify_project(
             "TMPDIR": str(tmp),
             "npm_config_cache": str(npm_cache),
             "npm_config_userconfig": str(home / ".npmrc"),
+            "npm_config_proxy": "",
+            "npm_config_https_proxy": "",
+            "npm_config_noproxy": "*",
+            "npm_config_audit": "false",
+            "npm_config_fund": "false",
+            "npm_config_ignore_scripts": "true",
         })
         if base_url:
             env["TYPE_MCP_BASE_URL"] = base_url
@@ -269,9 +274,9 @@ def verify_project(
         if not results["inspect"]["ok"]:
             return results  # fail fast
 
-        # 2. Install (no lifecycle scripts).
+        # 2. Install exactly the lockfile graph, without lifecycle scripts.
         results["install"] = _run_step(
-            ["npm", "install", "--ignore-scripts"], str(proj), env, timeout=300,
+            ["npm", "ci", "--ignore-scripts", "--no-audit", "--fund=false"], str(proj), env, timeout=300,
         )
         if not results["install"]["ok"]:
             return results
