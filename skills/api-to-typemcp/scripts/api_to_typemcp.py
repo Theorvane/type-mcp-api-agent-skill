@@ -26,6 +26,7 @@ import intake  # noqa: E402
 import structured_specs  # noqa: E402
 import manifest as manifest_mod  # noqa: E402
 import approval  # noqa: E402
+import render  # noqa: E402
 
 
 def _emit(payload: dict) -> None:
@@ -161,12 +162,19 @@ def _cmd_generate(args: argparse.Namespace) -> None:
     # Validate output target safety.
     output_dir = _validate_output_target(args.output, args.replace)
 
-    # Task 3 gate only: no rendering yet.  Confirm the gate passed.
+    # Render the full TypeMCP stdio project.
+    written: list[str] = []
+    try:
+        written = render.render_project(m, output_dir)
+    except Exception as exc:
+        _safe_error(f"render failed: {type(exc).__name__}")
+
     _emit({
-        "status": "generate-authorized",
+        "status": "generated",
         "manifest_digest": current_digest,
         "output": str(output_dir),
-        "note": "Task 3 gate passed; renderer lands in Task 4.",
+        "files": written,
+        "file_count": len(written),
     })
 
 

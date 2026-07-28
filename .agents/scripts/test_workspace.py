@@ -18,16 +18,20 @@ class EmbeddedEngineWorkspaceTests(unittest.TestCase):
         self.assertTrue((SKILL / "scripts").is_dir())
         self.assertTrue((SKILL / "templates").is_dir())
 
-        # Task 2 ships the local structured-spec engine. Task 4 will add the
-        # concrete TypeScript template tree, so this test must require only the
-        # executable contract available at this stage.
+        # Task 2 ships the local structured-spec engine. Task 4 adds the
+        # concrete TypeScript template tree and renderer.
         entrypoint = SKILL / "scripts/api_to_typemcp.py"
         self.assertTrue(entrypoint.is_file())
         self.assertTrue((SKILL / "scripts/intake.py").is_file())
         self.assertTrue((SKILL / "scripts/manifest.py").is_file())
         self.assertTrue((SKILL / "scripts/policy.py").is_file())
         self.assertTrue((SKILL / "scripts/structured_specs.py").is_file())
-        self.assertFalse((SKILL / "templates/typescript-stdio").exists())
+        # Task 4: renderer + templates must exist.
+        self.assertTrue((SKILL / "scripts/render.py").is_file())
+        self.assertTrue((SKILL / "templates/typescript-stdio").is_dir())
+        self.assertTrue((SKILL / "templates/typescript-stdio/package.json.tmpl").is_file())
+        self.assertTrue((SKILL / "templates/typescript-stdio/src/index.ts.tmpl").is_file())
+        self.assertTrue((SKILL / "templates/typescript-stdio/src/policy.ts.tmpl").is_file())
 
     def test_obsolete_cli_workspace_is_removed(self) -> None:
         self.assertFalse(CLI.exists(), "the generator must not retain a CLI package workspace")
