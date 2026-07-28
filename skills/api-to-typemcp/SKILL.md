@@ -94,7 +94,7 @@ Only use this after generated-project verification succeeds. Read-only discovery
 # 1. The assistant asks: "프로젝트만 생성할까요, 아니면 생성 후 에이전트에 탑재할까요?"
 # 2. For install, inspect and show a secret-free plan before any config write.
 python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-plan \
-  --project "$OUTPUT" --targets "cursor,gemini-cli" --json
+  --project "$OUTPUT" --targets "cursor,gemini-cli"
 
 # 3. Review the preview, then explicitly issue the plan-bound one-time confirmation.
 PLAN_DIGEST="...shown by install-plan..."
