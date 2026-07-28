@@ -6,13 +6,12 @@
 
 The `api-to-typemcp` **bundled skill engine** treats supplied specifications and documents as untrusted input. It does not enumerate a bare API origin, crawl unrelated pages, or persist raw private source data.
 
-1. Parse remote sources as URLs, never opaque display strings.
-2. Remove URL userinfo entirely.
+1. Accept only supplied local files. Structured input must be a local JSON/YAML file; Markdown/HTML must be a local file plus explicit `--base-url`; Swagger UI HTML is inspected in-memory only for its explicit config reference. The engine never fetches or follows a source URL.
+2. Remove URL userinfo entirely from any supplied base URL or explicit operation candidate.
 3. Replace query values with `REDACTED`; retain only allowlisted key names when necessary for diagnosis.
-4. Persist only sanitized origin host, normalized path or opaque local ID, and a stable content hash; never raw redirect targets.
-5. Sanitize local paths to a project-relative identifier or opaque source ID.
-6. Redact credentials from evidence snippets and diagnostics before they enter manifests, logs, task briefs, or approval displays.
-7. Hash fetched bytes only in ephemeral memory and never persist credential-bearing source text.
+4. Persist only secret-free source descriptors, normalized paths, and deterministic manifest data; never raw redirect targets, local paths, or fetched content.
+5. Redact credentials from evidence snippets and diagnostics before they enter manifests, logs, task briefs, or approval displays.
+6. Hash only normalized in-memory manifest data; never persist credential-bearing source text.
 
 A sanitization failure is fatal: no manifest, approval, generation, verification, or publication proceeds.
 

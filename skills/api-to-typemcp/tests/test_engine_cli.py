@@ -47,6 +47,17 @@ class EngineCliTests(unittest.TestCase):
         })
         self.assertNotIn(str(FIXTURES), result.stdout)
 
+    def test_swagger_ui_cli_rejects_oversized_file_before_reading(self) -> None:
+        """Bounded CLI discovery must stat-limit HTML before reading it."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "swagger-ui.html"
+            path.write_bytes(b"x" * (2 * 1024 * 1024 + 1))
+            result = run_engine("inspect", "--file", str(path), "--json")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Swagger UI input exceeds", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_failed_output_validation_does_not_consume_receipt(self) -> None:
         """A local output-target error must leave the approved receipt usable."""
         with tempfile.TemporaryDirectory() as directory:

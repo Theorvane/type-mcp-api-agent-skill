@@ -76,6 +76,8 @@ def main() -> int:
         "implementation is staged",
         "implementation pending",
         "supplied file or explicit URL",
+        "Parse remote sources",
+        "Hash fetched bytes",
     )
     for relative_path in ACTIVE_SOURCE_DOCS:
         content = (ROOT / relative_path).read_text(encoding="utf-8")

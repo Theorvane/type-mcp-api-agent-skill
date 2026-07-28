@@ -27,7 +27,7 @@ import structured_specs  # noqa: E402
 import manifest as manifest_mod  # noqa: E402
 import approval  # noqa: E402
 import render  # noqa: E402
-from swagger_ui import SwaggerUIError, extract_spec_reference  # noqa: E402
+from swagger_ui import MAX_SWAGGER_UI_BYTES, SwaggerUIError, extract_spec_reference  # noqa: E402
 
 
 def _emit(payload: dict) -> None:
@@ -93,6 +93,10 @@ def _cmd_inspect(args: argparse.Namespace) -> None:
     candidate = Path(args.file)
     if candidate.suffix.lower() in {".html", ".htm"} and candidate.is_file():
         try:
+            if candidate.stat().st_size > MAX_SWAGGER_UI_BYTES:
+                raise intake.IntakeError(
+                    f"Swagger UI input exceeds {MAX_SWAGGER_UI_BYTES} byte limit"
+                )
             content = candidate.read_text(encoding="utf-8")
             discovery = extract_spec_reference(content)
         except (OSError, UnicodeDecodeError) as exc:
