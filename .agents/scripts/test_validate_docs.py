@@ -65,6 +65,9 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
             "approval challenge",
             "challenge ID",
             "RFC 8785/JCS canonical",
+            "implementation is staged",
+            "implementation pending",
+            "supplied file or explicit URL",
         )
         for relative_path in ACTIVE_SOURCE_DOCS:
             content = (ROOT / relative_path).read_text(encoding="utf-8")

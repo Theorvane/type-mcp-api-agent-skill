@@ -1,6 +1,6 @@
 # MVP scope
 
-**Status:** Approved embedded-engine scope; implementation pending.
+**Status:** Implemented bundled-engine scope; registry publication remains separate.
 
 ## Product ownership
 
@@ -16,7 +16,7 @@
 
 | Capability | MVP boundary |
 | --- | --- |
-| Input | OpenAPI 3.x / Swagger 2.0 JSON/YAML supplied file or explicit URL; supplied Swagger UI; supplied Markdown/HTML documentation |
+| Input | Supplied local OpenAPI 3.x / Swagger 2.0 JSON/YAML file; `inspect`-only supplied Swagger UI configuration; supplied local Markdown/HTML documentation with explicit `--base-url` |
 | Engine output | Versioned secret-free manifest, diagnostics, and a rendered standalone TypeScript project |
 | Approval | Explicit manifest-digest confirmation for document-derived sources; structured specs are shown before generation |
 | Code generation | Controlled templates with exact published `@theorvane/type-mcp` dependency |

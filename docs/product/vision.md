@@ -1,6 +1,6 @@
 # Product vision
 
-**Status:** Approved embedded-engine target; implementation is staged.
+**Status:** Implemented bundled-engine product; registry publication remains separate.
 
 ## Problem
 
@@ -12,7 +12,7 @@ Creating a trustworthy MCP server for an external API requires interpreting hete
 
 ## User outcomes
 
-- A user supplies an OpenAPI/Swagger source, supplied Swagger UI page, or supplied Markdown/HTML document.
+- A user supplies a local OpenAPI/Swagger source, a supplied Swagger UI page for bounded config-only inspection (then separately supplies its local structured spec), or a supplied Markdown/HTML document.
 - The bundled skill engine presents a secret-free, evidence-backed manifest before generation.
 - After the required approval and output-target confirmation, it renders every approved endpoint as a TypeMCP tool.
 - The generated server uses published `@theorvane/type-mcp`, exposes an exact-ID protected-write gate, and is verified in containment.

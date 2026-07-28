@@ -56,7 +56,7 @@ python3 "$SKILL_DIR/scripts/api_to_typemcp.py" manifest \
   --base-url "https://api.example.test" --json
 ```
 
-Swagger UI discovery is in-memory and returns only an explicit configured spec reference. The user must separately supply that structured spec; do not fetch it automatically.
+Swagger UI discovery is performed by `inspect` in-memory and returns only an explicit configured spec reference. The user must separately supply that structured spec; do not fetch it automatically.
 
 ## Mandatory safety gates
 

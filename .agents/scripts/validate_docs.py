@@ -68,7 +68,15 @@ def main() -> int:
                 print(f"{relative_path} retains obsolete CLI boundary phrase: {phrase}")
                 return 1
 
-    stale_claims = ("`npm ci --ignore-scripts`", "approval challenge", "challenge ID", "RFC 8785/JCS canonical")
+    stale_claims = (
+        "`npm ci --ignore-scripts`",
+        "approval challenge",
+        "challenge ID",
+        "RFC 8785/JCS canonical",
+        "implementation is staged",
+        "implementation pending",
+        "supplied file or explicit URL",
+    )
     for relative_path in ACTIVE_SOURCE_DOCS:
         content = (ROOT / relative_path).read_text(encoding="utf-8")
         for phrase in stale_claims:

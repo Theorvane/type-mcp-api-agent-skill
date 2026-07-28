@@ -28,7 +28,7 @@ The current manifest is a normalized JSON object with `schema`, `version`, `prot
 
 Every `generate` invocation requires its exact current digest in `--confirm-manifest-digest` and an approval receipt from `approve --manifest-digest <digest>`. The receipt is held in isolated process-owned state and contains only `manifest_digest`, `issued_at`, `expires_at`, `nonce`, and HMAC `hmac`.
 
-Validation recomputes the HMAC over the digest, times, and nonce using the state-local secret; it requires the matching digest, a readable unexpired receipt, and valid integrity data. A successful generation removes the receipt, making it single-use. A copied or edited manifest cannot use a receipt bound to a different digest; a receipt is not an audit record, a challenge protocol, or a publication authorization.
+Validation recomputes the HMAC over the digest, times, and nonce using the state-local secret; it requires the matching digest, a readable unexpired receipt, and valid integrity data. Generation validates the output target first, then consumes the receipt before rendering, making it single-use once local preconditions pass. A copied or edited manifest cannot use a receipt bound to a different digest; a receipt is not an audit record, a challenge protocol, or a publication authorization.
 
 ## Normative execution policy
 
