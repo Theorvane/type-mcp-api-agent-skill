@@ -37,6 +37,17 @@ class AtomicInstallTests(unittest.TestCase):
         issue_install_receipt(self.plan)
         with self.assertRaises(InstallError): apply_json_target(self.plan.targets[0], self.spec, plan=self.plan)
         self.assertEqual(self.config.read_text(), '{"mcpServers":{"changed":{}}}\n')
+
+    def test_apply_refuses_existing_backup_without_mutating_config(self) -> None:
+        backup = self.plan.targets[0].backup_path
+        backup.write_text("attacker backup", encoding="utf-8")
+        issue_install_receipt(self.plan)
+
+        with self.assertRaises(InstallError):
+            apply_json_target(self.plan.targets[0], self.spec, plan=self.plan)
+
+        self.assertEqual(self.config.read_bytes(), self.original)
+        self.assertEqual(backup.read_text(encoding="utf-8"), "attacker backup")
     def test_failed_verification_restores_target_backup(self) -> None:
         issue_install_receipt(self.plan)
         with self.assertRaises(InstallError):

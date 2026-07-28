@@ -1,13 +1,15 @@
-"""Atomic JSON MCP configuration mutation with fingerprint and rollback gates."""
+"""Atomic native MCP configuration mutation with descriptor-based safety."""
 from __future__ import annotations
+
 import json
 import os
-import shutil
-import tempfile
+import secrets
+import stat
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Callable
+
 from agent_clients import McpServerSpec
 from config_codecs import UnsupportedConfigFormat, render_codex_toml
 from install_plan import InstallPlan, InstallPlanError, InstallTarget, validate_install_receipt
@@ -24,39 +26,90 @@ class ApplyResult:
     status: str
 
 
-def _fingerprint(path: Path) -> str:
-    if path.is_symlink() or not path.is_file():
-        raise InstallError("configuration target must remain a regular non-symlink file")
-    return "sha256:" + sha256(path.read_bytes()).hexdigest()
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_DIRECTORY = getattr(os, "O_DIRECTORY", 0)
 
 
 def _entry(spec: McpServerSpec) -> dict[str, object]:
     return {"command": spec.command, "args": list(spec.args), "cwd": str(spec.cwd)}
 
 
-def _atomic_write(path: Path, content: bytes) -> None:
-    parent = path.parent
-    if parent.is_symlink() or not parent.is_dir():
-        raise InstallError("configuration parent must be an existing non-symlink directory")
-    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=parent)
-    temp = Path(temporary)
+def _open_directory(path: Path) -> int:
+    """Open every path component without following symlinks."""
+    absolute = path.absolute()
+    if not absolute.is_absolute():
+        raise InstallError("configuration directory must be absolute")
+    fd = os.open(absolute.anchor, os.O_RDONLY | _DIRECTORY)
     try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.chmod(temp, 0o600)
-        os.replace(temp, path)
+        for component in absolute.parts[1:]:
+            next_fd = os.open(component, os.O_RDONLY | _DIRECTORY | _NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        return fd
     except Exception:
-        temp.unlink(missing_ok=True)
+        os.close(fd)
         raise
 
 
-def _backup(path: Path, destination: Path) -> None:
-    if destination.exists() or destination.is_symlink():
-        raise InstallError("refusing to overwrite an existing backup")
-    shutil.copyfile(path, destination)
-    os.chmod(destination, 0o600)
+def _read_regular(parent_fd: int, name: str) -> tuple[bytes, os.stat_result]:
+    fd = os.open(name, os.O_RDONLY | _NOFOLLOW, dir_fd=parent_fd)
+    try:
+        metadata = os.fstat(fd)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise InstallError("configuration target must remain a regular non-symlink file")
+        payload = bytearray()
+        while chunk := os.read(fd, 64 * 1024):
+            payload.extend(chunk)
+        return bytes(payload), metadata
+    finally:
+        os.close(fd)
+
+
+def _assert_current_identity(parent_fd: int, name: str, expected: os.stat_result) -> None:
+    current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino) != (expected.st_dev, expected.st_ino):
+        raise InstallError("configuration target changed during installation")
+
+
+def _exclusive_backup(parent_fd: int, backup_name: str, content: bytes) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW
+    try:
+        fd = os.open(backup_name, flags, 0o600, dir_fd=parent_fd)
+    except FileExistsError as exc:
+        raise InstallError("refusing to overwrite an existing backup") from exc
+    try:
+        view = memoryview(content)
+        while view:
+            written = os.write(fd, view)
+            view = view[written:]
+        os.fsync(fd)
+        os.fchmod(fd, 0o600)
+    finally:
+        os.close(fd)
+
+
+def _atomic_replace(parent_fd: int, name: str, content: bytes, expected: os.stat_result) -> None:
+    _assert_current_identity(parent_fd, name, expected)
+    temp_name = f".{name}.{secrets.token_hex(16)}.tmp"
+    fd = os.open(temp_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW, 0o600, dir_fd=parent_fd)
+    try:
+        view = memoryview(content)
+        while view:
+            written = os.write(fd, view)
+            view = view[written:]
+        os.fsync(fd)
+        os.fchmod(fd, 0o600)
+        _assert_current_identity(parent_fd, name, expected)
+        os.replace(temp_name, name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+        os.fsync(parent_fd)
+    except Exception:
+        try:
+            os.unlink(temp_name, dir_fd=parent_fd)
+        except FileNotFoundError:
+            pass
+        raise
+    finally:
+        os.close(fd)
 
 
 def _server_container(config: dict[str, object], client_id: str) -> dict[str, object]:
@@ -72,117 +125,88 @@ def _server_container(config: dict[str, object], client_id: str) -> dict[str, ob
     return servers
 
 
-def _apply_json_target(
-    target: InstallTarget,
-    spec: McpServerSpec,
-    *,
-    verifier: Callable[[], bool] | None = None,
-) -> ApplyResult:
-    """Apply a target after the caller has consumed the plan confirmation."""
+def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bool, verifier: Callable[[], bool] | None = None) -> ApplyResult:
     path = target.config_path
-    if path.is_symlink() or not path.is_file():
-        raise InstallError("configuration target must be an existing regular JSON file")
-    if _fingerprint(path) != target.config_fingerprint:
-        raise InstallError("configuration changed since the reviewed plan")
+    parent_fd = _open_directory(path.parent)
     try:
-        config = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise InstallError("configuration JSON is invalid") from exc
-    if not isinstance(config, dict):
-        raise InstallError("configuration root must be an object")
-    servers = _server_container(config, target.client_id)
-    if spec.name in servers:
-        raise InstallError("server name already exists; replacement needs a fresh plan")
-    _backup(path, target.backup_path)
-    servers[spec.name] = _entry(spec)
-    try:
-        _atomic_write(path, (json.dumps(config, indent=2, sort_keys=True) + "\n").encode("utf-8"))
-        if verifier is not None and not verifier():
-            raise InstallError("target verification failed")
-    except Exception as exc:
+        original, identity = _read_regular(parent_fd, path.name)
+        if "sha256:" + sha256(original).hexdigest() != target.config_fingerprint:
+            raise InstallError("configuration changed since the reviewed plan")
+        if json_target:
+            try:
+                config = json.loads(original.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                raise InstallError("configuration JSON is invalid") from exc
+            if not isinstance(config, dict):
+                raise InstallError("configuration root must be an object")
+            servers = _server_container(config, target.client_id)
+            if spec.name in servers:
+                raise InstallError("server name already exists; replacement needs a fresh plan")
+            servers[spec.name] = _entry(spec)
+            updated = (json.dumps(config, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        else:
+            try:
+                updated = render_codex_toml(original.decode("utf-8"), spec).encode("utf-8")
+            except (UnicodeDecodeError, UnsupportedConfigFormat) as exc:
+                raise InstallError("Codex configuration is not safely editable") from exc
+        _exclusive_backup(parent_fd, target.backup_path.name, original)
         try:
-            _atomic_write(path, target.backup_path.read_bytes())
-        except Exception as rollback_error:
-            raise InstallError("installation failed and rollback failed") from rollback_error
-        if isinstance(exc, InstallError):
-            raise
-        raise InstallError("installation failed; target was restored") from exc
+            _atomic_replace(parent_fd, path.name, updated, identity)
+            if verifier is not None and not verifier():
+                raise InstallError("target verification failed")
+        except Exception as exc:
+            # The replacement created a new inode; use its current identity for rollback.
+            current = os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False)
+            if not stat.S_ISREG(current.st_mode):
+                raise InstallError("installation failed and rollback target is unsafe") from exc
+            try:
+                _atomic_replace(parent_fd, path.name, original, current)
+            except Exception as rollback_error:
+                raise InstallError("installation failed and rollback failed") from rollback_error
+            if isinstance(exc, InstallError):
+                raise
+            raise InstallError("installation failed; target was restored") from exc
+    finally:
+        os.close(parent_fd)
     return ApplyResult(path, target.backup_path, "verified" if verifier else "written")
 
 
+def _apply_json_target(target: InstallTarget, spec: McpServerSpec, *, verifier: Callable[[], bool] | None = None) -> ApplyResult:
+    return _apply_target(target, spec, json_target=True, verifier=verifier)
+
+
 def _apply_codex_target(target: InstallTarget, spec: McpServerSpec) -> ApplyResult:
-    path = target.config_path
-    if path.is_symlink() or not path.is_file() or _fingerprint(path) != target.config_fingerprint:
-        raise InstallError("Codex configuration changed since the reviewed plan")
-    try:
-        rendered = render_codex_toml(path.read_text(encoding="utf-8"), spec)
-    except (UnicodeDecodeError, UnsupportedConfigFormat) as exc:
-        raise InstallError("Codex configuration is not safely editable") from exc
-    _backup(path, target.backup_path)
-    try:
-        _atomic_write(path, rendered.encode("utf-8"))
-    except Exception as exc:
-        try: _atomic_write(path, target.backup_path.read_bytes())
-        except Exception as rollback_error: raise InstallError("Codex installation failed and rollback failed") from rollback_error
-        raise InstallError("Codex installation failed; target was restored") from exc
-    return ApplyResult(path, target.backup_path, "written")
+    return _apply_target(target, spec, json_target=False)
 
 
-def apply_native_plan(
-    plan: InstallPlan,
-    spec: McpServerSpec,
-    *,
-    verifiers: dict[str, Callable[[], bool]] | None = None,
-) -> tuple[ApplyResult, ...]:
-    """Consume one receipt and apply each supported native adapter once."""
+def _consume_plan(plan: InstallPlan, spec: McpServerSpec, allowed: set[str]) -> None:
     if plan.server != spec:
         raise InstallError("server specification is not bound to the supplied plan")
-    allowed = {"codex", "cursor", "vscode-copilot", "gemini-cli", "opencode"}
     if any(target.client_id not in allowed for target in plan.targets):
         raise InstallError("plan contains an export-only or unsupported target")
-    try: validate_install_receipt(plan)
-    except InstallPlanError as exc: raise InstallError(str(exc)) from exc
-    checks = verifiers or {}
-    results: list[ApplyResult] = []
-    for target in plan.targets:
-        if target.client_id == "codex":
-            results.append(_apply_codex_target(target, spec))
-        else:
-            results.append(_apply_json_target(target, spec, verifier=checks.get(target.client_id)))
-    return tuple(results)
-
-
-def apply_json_plan(
-    plan: InstallPlan,
-    spec: McpServerSpec,
-    *,
-    verifiers: dict[str, Callable[[], bool]] | None = None,
-) -> tuple[ApplyResult, ...]:
-    """Consume one receipt and apply every selected JSON target in plan order."""
-    if plan.server != spec:
-        raise InstallError("server specification is not bound to the supplied plan")
-    allowed = {"cursor", "vscode-copilot", "gemini-cli", "opencode"}
-    if any(target.client_id not in allowed for target in plan.targets):
-        raise InstallError("plan contains a target that requires a non-JSON adapter")
     try:
         validate_install_receipt(plan)
     except InstallPlanError as exc:
         raise InstallError(str(exc)) from exc
+
+
+def apply_native_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:
+    """Consume one receipt and apply each supported native adapter once."""
+    _consume_plan(plan, spec, {"codex", "cursor", "vscode-copilot", "gemini-cli", "opencode"})
     checks = verifiers or {}
     return tuple(
-        _apply_json_target(target, spec, verifier=checks.get(target.client_id))
+        _apply_codex_target(target, spec) if target.client_id == "codex" else _apply_json_target(target, spec, verifier=checks.get(target.client_id))
         for target in plan.targets
     )
 
 
-def apply_json_target(
-    target: InstallTarget,
-    spec: McpServerSpec,
-    *,
-    plan: InstallPlan,
-    verifier: Callable[[], bool] | None = None,
-) -> ApplyResult:
-    """Compatibility single-target entry point with the same receipt boundary."""
+def apply_json_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:
+    _consume_plan(plan, spec, {"cursor", "vscode-copilot", "gemini-cli", "opencode"})
+    checks = verifiers or {}
+    return tuple(_apply_json_target(target, spec, verifier=checks.get(target.client_id)) for target in plan.targets)
+
+
+def apply_json_target(target: InstallTarget, spec: McpServerSpec, *, plan: InstallPlan, verifier: Callable[[], bool] | None = None) -> ApplyResult:
     if plan.targets != (target,):
         raise InstallError("single-target apply requires a plan containing exactly that target")
     return apply_json_plan(plan, spec, verifiers={target.client_id: verifier} if verifier else None)[0]
