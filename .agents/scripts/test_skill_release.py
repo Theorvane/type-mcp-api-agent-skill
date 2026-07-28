@@ -379,6 +379,17 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertIn("permissions:\n      contents: read", publish.group("body"))
         self.assertEqual(publish.group("body").count("persist-credentials: false"), 2)
 
+    def test_clawhub_publish_requires_public_confirmation_for_the_released_version(self) -> None:
+        """A pending ClawHub submission is not a successful public publication."""
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn('publication="$(bun .clawhub-source/packages/clawhub/src/cli.ts', workflow)
+        self.assertIn('json.loads(os.environ["CLAW_HUB_PUBLICATION"])', workflow)
+        self.assertIn('payload.get("status") != "published"', workflow)
+        self.assertIn('payload.get("publicationStatus") != "published"', workflow)
+        self.assertIn('payload.get("latestVersion") != expected_version', workflow)
+        self.assertIn("ClawHub public confirmation failed", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
