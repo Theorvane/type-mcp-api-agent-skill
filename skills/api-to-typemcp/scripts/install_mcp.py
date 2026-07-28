@@ -30,7 +30,9 @@ _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 _DIRECTORY = getattr(os, "O_DIRECTORY", 0)
 
 
-def _entry(spec: McpServerSpec) -> dict[str, object]:
+def _entry(spec: McpServerSpec, client_id: str) -> dict[str, object]:
+    if client_id == "opencode":
+        return {"command": [spec.command, *spec.args], "cwd": str(spec.cwd)}
     return {"command": spec.command, "args": list(spec.args), "cwd": str(spec.cwd)}
 
 
@@ -181,7 +183,7 @@ def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bo
             servers = _server_container(config, target.client_id)
             if spec.name in servers:
                 raise InstallError("server name already exists; replacement needs a fresh plan")
-            servers[spec.name] = _entry(spec)
+            servers[spec.name] = _entry(spec, target.client_id)
             updated = (json.dumps(config, indent=2, sort_keys=True) + "\n").encode("utf-8")
         else:
             try:

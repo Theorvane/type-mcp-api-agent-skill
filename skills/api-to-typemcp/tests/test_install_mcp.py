@@ -101,7 +101,9 @@ class AtomicInstallTests(unittest.TestCase):
 
         apply_json_plan(plan, self.spec)
 
-        self.assertIn("petstore-mcp", json.loads(opencode.read_text())["mcp"]["servers"])
+        entry = json.loads(opencode.read_text())["mcp"]["servers"]["petstore-mcp"]
+        self.assertEqual(entry["command"], ["node", "/safe/dist/index.js"])
+        self.assertNotIn("args", entry)
 
     def test_codex_appends_native_toml_without_rewriting_profiles(self) -> None:
         codex = self.home / ".codex"; codex.mkdir()
