@@ -1,5 +1,11 @@
-#!/usr/bin/env python3
-"""Dependency-minimal local OpenAPI/Swagger inspection and manifest entry point."""
+"""Bundled api-to-typemcp engine entry point.
+
+Staged deterministic commands:
+  inspect  — parse a supplied local structured spec and print a summary
+  manifest — build a secret-free normalized manifest with canonical digest
+  approve  — issue a single-use digest-bound approval receipt
+  generate — render a TypeMCP project after receipt validation (Task 3 gate)
+"""
 
 from __future__ import annotations
 
@@ -7,41 +13,231 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
 
-# This script is intentionally executable by absolute path from an installed skill.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from intake import IntakeError, load_local_document
-from structured_specs import StructuredSpecError, build_manifest
+# ---------------------------------------------------------------------------
+# Module resolution — allow running as `python3 scripts/api_to_typemcp.py`
+# or from the repository root.
+# ---------------------------------------------------------------------------
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import intake  # noqa: E402
+import structured_specs  # noqa: E402
+import manifest as manifest_mod  # noqa: E402
+import approval  # noqa: E402
 
 
-def _emit(value: dict[str, Any], as_json: bool) -> None:
-    if as_json:
-        print(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+def _emit(payload: dict) -> None:
+    json.dump(payload, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
+
+
+def _safe_error(message: str) -> None:
+    sys.stderr.write(f"error: {message}\n")
+    raise SystemExit(2)
+
+
+# ---------------------------------------------------------------------------
+# Output-target safety
+# ---------------------------------------------------------------------------
+
+def _validate_output_target(output: str, replace: bool) -> Path:
+    """Validate the generation output directory.
+
+    Rules:
+    - Must exist (no implicit creation of arbitrary paths).
+    - Must be empty unless ``replace`` is True.
+    - Must not be a symlink (escape prevention).
+    - Resolved path must not contain ``..`` components relative to cwd.
+    """
+    p = Path(output)
+
+    # Reject paths with parent-directory components before resolution.
+    if ".." in p.parts:
+        _safe_error(f"output path must not contain '..': {output}")
+
+    if not p.exists():
+        _safe_error(f"output directory does not exist: {output}")
+
+    if not p.is_dir():
+        _safe_error(f"output path is not a directory: {output}")
+
+    # Symlink escape: resolve and compare.
+    resolved = p.resolve()
+    if p.is_symlink() or resolved != p.absolute():
+        if p.is_symlink():
+            _safe_error(
+                f"output directory is a symlink; refusing to follow it for safety: {output}"
+            )
+
+    if not replace and any(p.iterdir()):
+        _safe_error(
+            f"output directory is non-empty: {output}. "
+            "Pass --replace to overwrite existing content."
+        )
+
+    return resolved
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+def _cmd_inspect(args: argparse.Namespace) -> None:
+    _path, document = intake.load_local_document(args.file)
+    m = structured_specs.build_manifest(document, "local-structured-spec")
+
+    # Detect source kind from the document itself.
+    if "openapi" in document:
+        kind = "openapi"
+    elif "swagger" in document:
+        kind = "swagger"
     else:
-        print(value)
+        kind = "unknown"
+
+    _emit({
+        "source": {"kind": kind, "descriptor": "local-structured-spec"},
+        "api_version": document.get("openapi") or document.get("swagger", ""),
+        "title": document.get("info", {}).get("title", ""),
+        "version": document.get("info", {}).get("version", ""),
+        "operationCount": len(m.get("operations", [])),
+    })
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="api_to_typemcp", add_help=True)
-    subcommands = parser.add_subparsers(dest="command", required=True)
-    for name in ("inspect", "manifest"):
-        command = subcommands.add_parser(name)
-        command.add_argument("--file", required=True, help="explicit local .json/.yaml/.yml specification")
-        command.add_argument("--json", action="store_true", help="emit machine-readable JSON")
-    args = parser.parse_args(argv)
+def _cmd_manifest(args: argparse.Namespace) -> None:
+    _path, document = intake.load_local_document(args.file)
+    m = structured_specs.build_manifest(document, "local-structured-spec")
+    if args.json:
+        _emit(m)
+    else:
+        _emit({
+            "manifest_digest": m["manifest_digest"],
+            "operation_count": len(m["operations"]),
+            "warnings": m.get("warnings", []),
+        })
+
+
+def _cmd_approve(args: argparse.Namespace) -> None:
+    # Compute current digest to verify the caller's stated digest matches.
+    _path, document = intake.load_local_document(args.file)
+    m = structured_specs.build_manifest(document, "local-structured-spec")
+    current_digest = m["digest"]
+
+    if args.manifest_digest != current_digest:
+        _safe_error(
+            f"provided digest {args.manifest_digest} does not match current "
+            f"manifest digest {current_digest}; refusing to approve"
+        )
+
+    receipt_path = approval.issue_receipt(current_digest)
+    _emit({
+        "status": "approved",
+        "manifest_digest": current_digest,
+        "receipt": str(receipt_path),
+    })
+
+
+def _cmd_generate(args: argparse.Namespace) -> None:
+    # Build manifest to get current digest.
+    _path, document = intake.load_local_document(args.file)
+    m = structured_specs.build_manifest(document, "local-structured-spec")
+    current_digest = m["digest"]
+
+    # Structured specs require explicit digest confirmation on the generate
+    # command line so the operator proves they reviewed the exact manifest.
+    if args.confirm_manifest_digest != current_digest:
+        _safe_error(
+            f"confirmation digest {args.confirm_manifest_digest} does not match "
+            f"current manifest digest {current_digest}; the manifest has changed"
+        )
+
+    # Validate the isolated-state approval receipt (single-use, HMAC-bound).
     try:
-        path, document = load_local_document(args.file)
-        manifest = build_manifest(document, path.name)
+        approval.validate_and_consume_receipt(current_digest)
+    except approval.ApprovalError as exc:
+        _safe_error(str(exc))
+
+    # Validate output target safety.
+    output_dir = _validate_output_target(args.output, args.replace)
+
+    # Task 3 gate only: no rendering yet.  Confirm the gate passed.
+    _emit({
+        "status": "generate-authorized",
+        "manifest_digest": current_digest,
+        "output": str(output_dir),
+        "note": "Task 3 gate passed; renderer lands in Task 4.",
+    })
+
+
+# ---------------------------------------------------------------------------
+# CLI wiring
+# ---------------------------------------------------------------------------
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="api_to_typemcp",
+        description="Bundled api-to-typemcp engine (deterministic, local-only).",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # inspect
+    p_inspect = sub.add_parser("inspect", help="Summarize a local structured spec.")
+    p_inspect.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_inspect.add_argument("--json", action="store_true", help="Emit full JSON output.")
+
+    # manifest
+    p_manifest = sub.add_parser("manifest", help="Build a normalized manifest.")
+    p_manifest.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_manifest.add_argument("--json", action="store_true", help="Emit the full manifest JSON.")
+
+    # approve
+    p_approve = sub.add_parser("approve", help="Issue an approval receipt for the current digest.")
+    p_approve.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_approve.add_argument(
+        "--manifest-digest",
+        required=True,
+        help="Exact canonical digest to approve (must match current state).",
+    )
+
+    # generate
+    p_generate = sub.add_parser("generate", help="Generate a TypeMCP project (Task 3 gate).")
+    p_generate.add_argument("--file", required=True, help="Path to local JSON/YAML spec.")
+    p_generate.add_argument("--output", required=True, help="Output directory (must exist and be empty unless --replace).")
+    p_generate.add_argument("--replace", action="store_true", help="Allow writing into a non-empty output directory.")
+    p_generate.add_argument(
+        "--confirm-manifest-digest",
+        required=True,
+        help="Explicit confirmation of the current manifest digest.",
+    )
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    try:
         if args.command == "inspect":
-            _emit({"source": manifest["source"], "baseUrl": manifest["baseUrl"], "operationCount": len(manifest["operations"])}, args.json)
-        else:
-            _emit(manifest, args.json)
-        return 0
-    except (IntakeError, StructuredSpecError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+            _cmd_inspect(args)
+        elif args.command == "manifest":
+            _cmd_manifest(args)
+        elif args.command == "approve":
+            _cmd_approve(args)
+        elif args.command == "generate":
+            _cmd_generate(args)
+    except intake.IntakeError as exc:
+        _safe_error(str(exc))
+    except structured_specs.StructuredSpecError as exc:
+        _safe_error(str(exc))
+    except approval.ApprovalError as exc:
+        _safe_error(str(exc))
+    except SystemExit:
+        raise
+    except Exception as exc:  # pragma: no cover — last-resort safety net
+        _safe_error(f"unexpected internal error: {type(exc).__name__}")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
