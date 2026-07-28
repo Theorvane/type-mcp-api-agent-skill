@@ -52,8 +52,19 @@ def _contained_without_symlinks(path: Path, boundary: Path) -> bool:
         return False
 
 
+def _has_symlink_ancestor(path: Path) -> bool:
+    """Check original absolute path components before any resolution erases links."""
+    absolute = path.absolute()
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
+
+
 def _project_root(project: Path) -> Path:
-    if project.is_symlink() or not project.is_dir():
+    if _has_symlink_ancestor(project) or project.is_symlink() or not project.is_dir():
         raise AgentClientError("generated project must be an existing non-symlink directory")
     return project.resolve()
 
@@ -86,6 +97,8 @@ def _existing(paths: tuple[Path, ...], root: Path) -> tuple[Path, ...]:
 
 def detect_clients(*, home: Path, project: Path, which: Callable[[str], str | None]) -> list[DetectedClient]:
     _project_root(project)  # establishes an explicit boundary; does not inspect .env
+    if _has_symlink_ancestor(home) or home.is_symlink() or not home.is_dir():
+        raise AgentClientError("home must be an existing non-symlink directory")
     root = home.resolve()
     locations = {
         "hermes": (root / ".hermes/config.yaml",), "claude-code": (root / ".claude.json", root / ".claude/settings.json"),

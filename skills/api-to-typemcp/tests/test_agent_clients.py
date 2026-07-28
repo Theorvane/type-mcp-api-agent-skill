@@ -36,4 +36,19 @@ class DetectionTests(unittest.TestCase):
         ext = self.root / "external"; ext.mkdir(); (ext / "config.toml").write_text("model='x'")
         (self.home / ".codex/config.toml").unlink(); (self.home / ".codex").rmdir(); (self.home / ".codex").symlink_to(ext, target_is_directory=True)
         self.assertNotIn("codex", [x.id for x in detect_clients(home=self.home, project=self.project, which=lambda _: None)])
+
+    def test_rejects_project_with_symlinked_ancestor(self) -> None:
+        outside = self.root / "outside"; outside.mkdir()
+        linked_root = self.root / "project-link"; linked_root.symlink_to(outside, target_is_directory=True)
+        project = linked_root / "project"; (outside / "project/dist").mkdir(parents=True)
+        (outside / "project/dist/index.js").write_text("// built")
+        with self.assertRaises(AgentClientError):
+            server_spec_from_project(project, server_name="petstore-mcp")
+
+    def test_rejects_home_with_symlinked_ancestor(self) -> None:
+        outside = self.root / "outside-home"; outside.mkdir()
+        (outside / ".codex").mkdir(); (outside / ".codex/config.toml").write_text("model='x'")
+        linked_home = self.root / "home-link"; linked_home.symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(AgentClientError):
+            detect_clients(home=linked_home, project=self.project, which=lambda _: None)
 if __name__ == "__main__": unittest.main()

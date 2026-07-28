@@ -47,6 +47,26 @@ class EngineCliTests(unittest.TestCase):
         })
         self.assertNotIn(str(FIXTURES), result.stdout)
 
+    def test_agent_install_cli_requires_preview_then_separate_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); project = root / "project"; (project / "dist").mkdir(parents=True)
+            (project / "dist/index.js").write_text("// built", encoding="utf-8")
+            home = root / "home"; (home / ".cursor").mkdir(parents=True)
+            config = home / ".cursor/mcp.json"; config.write_text('{"mcpServers":{}}\n', encoding="utf-8")
+            state = root / "state"; env = {**os.environ, "TYPE_MCP_APPROVAL_STATE_DIR": str(state)}
+            common = ["--project", str(project), "--home", str(home), "--targets", "cursor", "--server-name", "petstore-mcp"]
+            preview = subprocess.run([sys.executable, str(ENTRYPOINT), "install-plan", *common], text=True, capture_output=True, env=env, check=False)
+            self.assertEqual(preview.returncode, 0, preview.stderr)
+            plan = json.loads(preview.stdout); self.assertEqual(plan["status"], "review-required")
+            self.assertEqual(config.read_text(), '{"mcpServers":{}}\n')
+            rejected = subprocess.run([sys.executable, str(ENTRYPOINT), "install-apply", *common, "--confirm-plan-digest", plan["plan_digest"]], text=True, capture_output=True, env=env, check=False)
+            self.assertEqual(rejected.returncode, 2)
+            approved = subprocess.run([sys.executable, str(ENTRYPOINT), "install-approve", "--plan-digest", plan["plan_digest"]], text=True, capture_output=True, env=env, check=False)
+            self.assertEqual(approved.returncode, 0, approved.stderr)
+            applied = subprocess.run([sys.executable, str(ENTRYPOINT), "install-apply", *common, "--confirm-plan-digest", plan["plan_digest"]], text=True, capture_output=True, env=env, check=False)
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            self.assertIn("petstore-mcp", json.loads(config.read_text())["mcpServers"])
+
     def test_swagger_ui_cli_rejects_oversized_file_before_reading(self) -> None:
         """Bounded CLI discovery must stat-limit HTML before reading it."""
         with tempfile.TemporaryDirectory() as directory:
