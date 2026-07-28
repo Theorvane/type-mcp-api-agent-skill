@@ -61,7 +61,7 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
     def test_active_source_docs_reject_stale_claims_and_retain_runtime_contract(self) -> None:
         """Canonical docs must not drift back to unimplemented CLI semantics."""
         stale_claims = (
-            "`npm ci --ignore-scripts`",
+
             "approval challenge",
             "challenge ID",
             "RFC 8785/JCS canonical",
@@ -133,7 +133,7 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
     def test_validator_preserves_execution_and_containment_safety_contracts(self) -> None:
         for relative_path, phrase in (
             ("docs/guides/security-and-publication.md", "before upstream request construction or dispatch"),
-            ("docs/guides/security-and-publication.md", "npm install --ignore-scripts"),
+            ("docs/guides/security-and-publication.md", "npm ci --ignore-scripts"),
         ):
             with self.subTest(path=relative_path, phrase=phrase):
                 self.assert_validator_fails_after_removal(relative_path, phrase)
