@@ -65,7 +65,7 @@ class SkillReleaseTests(unittest.TestCase):
                 else:
                     os.environ["GITHUB_OUTPUT"] = previous_output
 
-            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.2.0\ntag=v0.2.0\n")
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.2.1\ntag=v0.2.1\n")
 
     def test_version_extraction_step_rejects_invalid_numeric_prerelease_identifiers(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -85,7 +85,7 @@ class SkillReleaseTests(unittest.TestCase):
                 skill_path = root / "skills/api-to-typemcp/SKILL.md"
                 skill_path.parent.mkdir(parents=True)
                 skill_path.write_text(
-                    original.replace("version: 0.2.0", f"version: {invalid_version}"),
+                    original.replace("version: 0.2.1", f"version: {invalid_version}"),
                     encoding="utf-8",
                 )
                 previous_cwd = Path.cwd()
@@ -243,9 +243,9 @@ class SkillReleaseTests(unittest.TestCase):
             [
                 (200, {"data": [{"slug": "integration"}]}),
                 (200, {"slug": "api-to-typemcp", "status": "DRAFT"}),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
-                (200, [{"version": "0.2.0"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.1"}),
+                (200, [{"version": "0.2.1"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.1"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -258,7 +258,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.2.0",
+            "SKILL_VERSION": "0.2.1",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
@@ -280,8 +280,8 @@ class SkillReleaseTests(unittest.TestCase):
                 (200, {"slug": "api-to-typemcp", "status": "PUBLISHED"}),
                 (200, []),
                 (409, {"error": "version already exists"}),
-                (200, [{"version": "0.2.0"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
+                (200, [{"version": "0.2.1"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.1"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -294,7 +294,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.2.0",
+            "SKILL_VERSION": "0.2.1",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
@@ -378,6 +378,17 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertIn("permissions:\n      contents: write", release.group("body"))
         self.assertIn("permissions:\n      contents: read", publish.group("body"))
         self.assertEqual(publish.group("body").count("persist-credentials: false"), 2)
+
+    def test_clawhub_publish_requires_public_confirmation_for_the_released_version(self) -> None:
+        """A pending ClawHub submission is not a successful public publication."""
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn('publication="$(bun .clawhub-source/packages/clawhub/src/cli.ts', workflow)
+        self.assertIn('json.loads(os.environ["CLAW_HUB_PUBLICATION"])', workflow)
+        self.assertIn('payload.get("status") != "published"', workflow)
+        self.assertIn('payload.get("publicationStatus") != "published"', workflow)
+        self.assertIn('payload.get("version") != expected_version', workflow)
+        self.assertIn("ClawHub public confirmation failed", workflow)
 
 
 if __name__ == "__main__":

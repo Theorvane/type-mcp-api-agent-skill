@@ -12,14 +12,14 @@ Tasks 1–7 of embedded-engine delivery are implemented on `dev`: structured Ope
 - **Bounded sources:** accept supplied OpenAPI/Swagger files or explicit documentation only; never enumerate a bare API origin.
 - **Secrets stay external:** artifacts may contain environment-variable names and mappings, never values.
 - **Protected writes fail closed:** `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` must authorize an exact known operation ID before request construction.
-- **Contained verification:** inspect generated `package.json`, use isolated `npm install --ignore-scripts`, and verify only in a fresh scrubbed workspace. Generated projects currently have no lockfile.
+- **Contained verification:** inspect generated `package.json` and `package-lock.json`, use isolated `npm ci --ignore-scripts` with proxy settings disabled, and verify only in a fresh scrubbed workspace. Use a host container/VM/sandbox when the dependency graph is untrusted.
 - **Publication is separate:** immediately before publication, confirm owner/org, repository name, visibility, and source branch; verify the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch.
 
 ## Install the released skill
 
 - [ClawHub (`@sjungwon03/api-to-typemcp`)](https://clawhub.ai/sjungwon03/api-to-typemcp)
 - [skills-hub.ai (`api-to-typemcp`)](https://skills-hub.ai/skills/api-to-typemcp)
-- [GitHub Release v0.2.0](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.2.0)
+- [GitHub Release v0.2.1](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.2.1)
 
 ## Layout
 

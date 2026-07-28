@@ -43,7 +43,7 @@ The released `skills/api-to-typemcp/` artifact is the generator delivery unit. I
 - A manifest is eligible only with an **engine-issued, unexpired, single-use HMAC-validated receipt** bound to the current deterministic `sha256:` digest. The digest encoding is engine-specific, not RFC 8785/JCS, and the receipt carries no manifest-contract version.
 - `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` grants protected writes only by exact known operation ID. A parser, operation name, or prose cannot classify a mutating method as `read`.
 - Bounded source intake never crawls a bare base origin.
-- Verification first inspects generated `package.json`, runs isolated `npm install --ignore-scripts`, then performs only contained checks with a local fixture upstream. Generated projects currently have no lockfile.
+- Verification first inspects generated `package.json` and `package-lock.json`, runs isolated `npm ci --ignore-scripts` with lifecycle scripts and inherited proxies disabled, then performs only contained checks with a local fixture upstream. A host container/VM/sandbox remains required when the dependency graph is untrusted.
 - Publication requires a recorded owner/org, name, visibility, and source-branch confirmation. The actual checked-out/ref-to-publish branch must exactly equal that recorded branch immediately before staging, committing, or pushing.
 
 ## Invariants

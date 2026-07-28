@@ -116,7 +116,7 @@ class GeneratedProjectE2ETests(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_install_typecheck_test_build(self) -> None:
-        """npm install --ignore-scripts, tsc --noEmit, vitest run, npm run build."""
+        """npm ci --ignore-scripts, tsc --noEmit, vitest run, npm run build."""
         results = self._verify(skip_mcp=True)
 
         for step in ("inspect", "install", "typecheck", "test", "build"):
