@@ -38,7 +38,7 @@ A source parser, operation name, or documentation prose cannot classify a mutati
 
 ## Manifest approval
 
-The engine displays the complete candidate manifest with sanitized source evidence, confidence, RFC 8785/JCS canonical `manifestDigest`, contract version, and approval challenge. For document-derived manifests, it waits for explicit user confirmation of that exact digest, then writes a separate integrity-validated receipt in process-owned isolated state. The receipt is bound to exact digest/version, expires, and is single-use. Missing, stale, used, tampered, or unbound receipts stop generation. The engine never installs dependencies, calls an upstream API, creates a GitHub repository, or pushes output before these gates are valid.
+The engine displays/prints the normalized candidate manifest with sanitized source/evidence, operation confidence where document-derived, and deterministic `digest`. The operator must pass that exact digest to both `approve` and `generate`; the engine then stores a state-local HMAC receipt bound to the digest. Its fields are `manifest_digest`, `issued_at`, `expires_at`, `nonce`, and `hmac`; it expires and is deleted only after a successful generation. Missing, stale, used, tampered, or unbound receipts stop generation. This is a local generation gate, not an audit trail or a substitute for user confirmation immediately before a separate GitHub publication. The engine never installs dependencies, calls an upstream API, creates a GitHub repository, or pushes output before these gates are valid.
 
 ## Contained generation and verification
 
@@ -47,7 +47,7 @@ Generation and verification execute untrusted generated code/dependencies, so th
 1. Create a fresh directory owned by the current process as the only engine/output working directory.
 2. Use a scrubbed environment: retain only required basics (`PATH`, isolated temp/home, locale); remove credentials, git configuration, cloud variables, npm auth, proxies unless explicitly approved, and inherited API endpoints.
 3. Default to no outbound network except an explicitly approved pinned npm registry fetch. Do not make upstream API requests in normal verification.
-4. Inspect generated `package.json`, lockfile, and registry/integrity metadata. The project must declare published `@theorvane/type-mcp`, never a file/git/local dependency. Run `npm ci --ignore-scripts` before any lifecycle script.
+4. Inspect generated `package.json` before installation. The generated project intentionally has no lockfile, so contained verification establishes a fresh isolated dependency tree with `npm install --ignore-scripts`; it does not claim lockfile/integrity reproducibility. The project must declare published `@theorvane/type-mcp`, never a file/git/local dependency.
 5. Run lint, typecheck, tests, and build only inside containment after inspection.
 6. Use an official SDK transport and local fixture/mock upstream for the MCP smoke test; prove denied writes make no upstream request.
 7. A live authenticated upstream smoke test requires separate explicit user approval naming the upstream and permitted operations.

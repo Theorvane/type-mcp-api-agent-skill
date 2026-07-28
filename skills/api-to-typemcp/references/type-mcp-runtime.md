@@ -30,4 +30,4 @@ Never generate or publish any of the following:
 - imports from private, undocumented, or unavailable TypeMCP APIs;
 - local TypeMCP checkouts as a generated-project dependency.
 
-Before generated lifecycle scripts run, contained verification inspects dependency metadata and runs `npm ci --ignore-scripts` (or the equivalent deterministic no-lifecycle install when a fresh lockfile is being established). It then typechecks, tests, builds, and executes a local stdio smoke test against a mock upstream.
+Before generated lifecycle scripts run, contained verification inspects dependency metadata and runs `npm install --ignore-scripts` in a fresh isolated workspace. Generated projects currently do not ship a lockfile, so this establishes a fresh no-lifecycle install rather than claiming a lockfile-pinned `npm ci` install. It then typechecks, tests, builds, and executes a local stdio smoke test against a mock upstream.

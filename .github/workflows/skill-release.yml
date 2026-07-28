@@ -57,13 +57,32 @@ jobs:
               output.write(f"tag=v{version}\n")
           PY
 
-      - name: Verify packaged bundled runtime tree
+      - name: Stage and verify bundled runtime artifact
         run: |
-          test -f skills/api-to-typemcp/SKILL.md
-          test -f skills/api-to-typemcp/scripts/api_to_typemcp.py
-          test -d skills/api-to-typemcp/templates/typescript-stdio
-          test -f skills/api-to-typemcp/references/type-mcp-runtime.md
-          test -f skills/api-to-typemcp/requirements.txt
+          set -eu
+          artifact="$RUNNER_TEMP/api-to-typemcp-runtime.tar"
+          tar -cf "$artifact" skills/api-to-typemcp
+          for required in \
+            skills/api-to-typemcp/SKILL.md \
+            skills/api-to-typemcp/requirements.txt \
+            skills/api-to-typemcp/scripts/api_to_typemcp.py \
+            skills/api-to-typemcp/scripts/intake.py \
+            skills/api-to-typemcp/scripts/structured_specs.py \
+            skills/api-to-typemcp/scripts/manifest.py \
+            skills/api-to-typemcp/scripts/approval.py \
+            skills/api-to-typemcp/scripts/policy.py \
+            skills/api-to-typemcp/scripts/render.py \
+            skills/api-to-typemcp/scripts/verify_generated.py \
+            skills/api-to-typemcp/templates/typescript-stdio/package.json.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/tsconfig.json.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/README.md.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/.env.example.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/src/index.ts.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/src/api-client.ts.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/src/policy.ts.tmpl \
+            skills/api-to-typemcp/references/type-mcp-runtime.md; do
+            tar -tf "$artifact" | grep -Fx "$required" >/dev/null
+          done
 
   release:
     needs: prepare

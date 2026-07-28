@@ -115,7 +115,7 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
     def test_validator_preserves_execution_and_containment_safety_contracts(self) -> None:
         for relative_path, phrase in (
             ("docs/guides/security-and-publication.md", "before upstream request construction or dispatch"),
-            ("docs/guides/security-and-publication.md", "npm ci --ignore-scripts"),
+            ("docs/guides/security-and-publication.md", "npm install --ignore-scripts"),
         ):
             with self.subTest(path=relative_path, phrase=phrase):
                 self.assert_validator_fails_after_removal(relative_path, phrase)

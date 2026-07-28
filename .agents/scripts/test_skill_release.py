@@ -302,23 +302,40 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertEqual(calls.count(("POST", "/skills/api-to-typemcp/versions")), 1)
 
     def test_release_contract_includes_complete_bundled_runtime_tree(self) -> None:
-        """Published artifacts must contain engine scripts, templates, and references."""
+        """Preflight must enumerate every renderer-required file, not directories."""
+        required = (
+            "SKILL.md",
+            "requirements.txt",
+            "scripts/api_to_typemcp.py",
+            "scripts/intake.py",
+            "scripts/structured_specs.py",
+            "scripts/manifest.py",
+            "scripts/approval.py",
+            "scripts/policy.py",
+            "scripts/render.py",
+            "scripts/verify_generated.py",
+            "templates/typescript-stdio/package.json.tmpl",
+            "templates/typescript-stdio/tsconfig.json.tmpl",
+            "templates/typescript-stdio/README.md.tmpl",
+            "templates/typescript-stdio/.env.example.tmpl",
+            "templates/typescript-stdio/src/index.ts.tmpl",
+            "templates/typescript-stdio/src/api-client.ts.tmpl",
+            "templates/typescript-stdio/src/policy.ts.tmpl",
+            "references/type-mcp-runtime.md",
+        )
         skill_root = ROOT / "skills/api-to-typemcp"
-        self.assertTrue((skill_root / "scripts/api_to_typemcp.py").is_file())
-        self.assertTrue((skill_root / "templates/typescript-stdio").is_dir())
-        self.assertTrue((skill_root / "references/type-mcp-runtime.md").is_file())
+        for relative in required:
+            with self.subTest(relative=relative):
+                self.assertTrue((skill_root / relative).is_file())
 
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        # Packaging verification happens before either registry publication.
-        self.assertIn("Verify packaged bundled runtime tree", workflow)
-        for required in (
-            "scripts/api_to_typemcp.py",
-            "templates/typescript-stdio",
-            "references/type-mcp-runtime.md",
-        ):
-            self.assertIn(required, workflow)
+        self.assertIn("Stage and verify bundled runtime artifact", workflow)
+        for relative in required:
+            with self.subTest(workflow_file=relative):
+                self.assertIn(f"skills/api-to-typemcp/{relative}", workflow)
+        self.assertIn("tar -tf", workflow)
         self.assertLess(
-            workflow.index("Verify packaged bundled runtime tree"),
+            workflow.index("Stage and verify bundled runtime artifact"),
             workflow.index("Register the released skill in ClawHub"),
         )
 

@@ -72,8 +72,8 @@ def main() -> int:
         "AGENTS.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest before generation", "before request construction"),
         "README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest first", "Contained verification"),
         "docs/architecture/overview.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "single-use integrity-validated receipt", "before request construction"),
-        "docs/api/manifest-contract.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "RFC 8785 JSON Canonicalization Scheme (JCS)", "A copied or edited manifest cannot forge a receipt"),
-        "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm ci --ignore-scripts", "actual checked-out/ref-to-publish branch"),
+        "docs/api/manifest-contract.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "engine-specific deterministic encoding", "receipt is not an audit record"),
+        "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm install --ignore-scripts", "actual checked-out/ref-to-publish branch"),
         "docs/planning/README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "protected-write authorization before request construction"),
         "skills/api-to-typemcp/SKILL.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before URL, query, headers, body, authentication, or dispatch"),
         ".agents/checklists/release-readiness.md": (
