@@ -58,7 +58,20 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
                 self.assertNotIn("type-mcp-api-cli", content)
                 self.assertNotIn("cli compatibility", content)
 
-    def test_validator_enforces_embedded_engine_and_published_runtime(self) -> None:
+    def test_active_source_docs_reject_stale_claims_and_retain_runtime_contract(self) -> None:
+        """Canonical docs must not drift back to unimplemented CLI semantics."""
+        stale_claims = (
+            "`npm ci --ignore-scripts`",
+            "approval challenge",
+            "challenge ID",
+            "RFC 8785/JCS canonical",
+        )
+        for relative_path in ACTIVE_SOURCE_DOCS:
+            content = (ROOT / relative_path).read_text(encoding="utf-8")
+            for phrase in stale_claims:
+                with self.subTest(path=relative_path, phrase=phrase):
+                    self.assertNotIn(phrase, content)
+
         for relative_path in (
             "AGENTS.md",
             "README.md",

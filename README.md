@@ -4,7 +4,7 @@ The published `api-to-typemcp` Hermes skill is the single delivery unit for API-
 
 ## Status
 
-Tasks 1–6 of embedded-engine delivery are implemented on `dev`: structured OpenAPI/Swagger intake, bounded Swagger UI and Markdown/HTML evidence intake, digest-bound approval, controlled TypeScript rendering, and contained project E2E verification. Skill version publication remains a separate release-preparation change after this implementation sequence.
+Tasks 1–7 of embedded-engine delivery are implemented on `dev`: structured OpenAPI/Swagger intake, bounded Swagger UI and Markdown/HTML evidence intake, digest-bound approval, controlled TypeScript rendering, contained project E2E verification, and runtime/package-contract documentation. Skill version publication remains a separate release-preparation change after this implementation sequence.
 
 ## Safety contract
 
@@ -12,7 +12,7 @@ Tasks 1–6 of embedded-engine delivery are implemented on `dev`: structured Ope
 - **Bounded sources:** accept supplied OpenAPI/Swagger files or explicit documentation only; never enumerate a bare API origin.
 - **Secrets stay external:** artifacts may contain environment-variable names and mappings, never values.
 - **Protected writes fail closed:** `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` must authorize an exact known operation ID before request construction.
-- **Contained verification:** inspect generated dependencies, use `npm ci --ignore-scripts`, and verify only in a fresh scrubbed workspace.
+- **Contained verification:** inspect generated `package.json`, use isolated `npm install --ignore-scripts`, and verify only in a fresh scrubbed workspace. Generated projects currently have no lockfile.
 - **Publication is separate:** immediately before publication, confirm owner/org, repository name, visibility, and source branch; verify the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch.
 
 ## Install the released skill

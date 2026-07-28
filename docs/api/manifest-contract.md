@@ -11,8 +11,8 @@ The manifest is not an approval credential. A document-derived manifest becomes 
 | Stage | Input | Output | Side-effect rule |
 | --- | --- | --- | --- |
 | `inspect` | supplied source descriptor | sanitized provenance and safe diagnostics | no generated files or upstream API calls |
-| `manifest` | inspected source | validated manifest plus approval challenge when required | no generated files |
-| `approve` | engine state, challenge ID, exact digest, explicit confirmation | engine-issued isolated receipt | no generated files or upstream API calls |
+| `manifest` | inspected source | validated manifest and deterministic digest | no generated files |
+| `approve` | engine state and exact digest | engine-issued isolated HMAC receipt | no generated files or upstream API calls |
 | `generate` | eligible manifest, valid receipt if required, confirmed output path | rendered project and generation metadata | local output only; no GitHub publication |
 | `verify` | generated project copy | contained static/install/test evidence | no live upstream without separate approval |
 
@@ -20,7 +20,7 @@ The entrypoint is `skills/api-to-typemcp/scripts/api_to_typemcp.py`. It exposes 
 
 ## Implemented manifest and digest
 
-The current manifest is a normalized JSON object with `schema`, `version`, `protocol`, `source`, `baseUrl`, `operations`, `authentication`, `warnings`, and `digest`. Intake rejects duplicate JSON/YAML keys, non-finite numbers, malformed Unicode, unsafe nesting/aliases, and unsupported source shapes before construction.
+The current manifest is a normalized JSON object with `schema`, `version`, `protocol`, `source`, `baseUrl`, `operations`, `authentication`, and `digest`. `warnings` may be present only when intake produces normalized warnings; it is not a required top-level field. Intake rejects duplicate JSON/YAML keys, non-finite numbers, malformed Unicode, unsafe nesting/aliases, and unsupported source shapes before construction.
 
 `digest` is lowercase `sha256:<hex>` over deterministic compact UTF-8 JSON: sorted keys, no insignificant whitespace, `ensure_ascii=False`, and no non-finite numbers. It covers every manifest field except `digest` itself. This is an engine-specific deterministic encoding; it is **not** a claim of RFC 8785/JCS conformance.
 

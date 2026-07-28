@@ -67,6 +67,8 @@ jobs:
             skills/api-to-typemcp/requirements.txt \
             skills/api-to-typemcp/scripts/api_to_typemcp.py \
             skills/api-to-typemcp/scripts/intake.py \
+            skills/api-to-typemcp/scripts/documents.py \
+            skills/api-to-typemcp/scripts/swagger_ui.py \
             skills/api-to-typemcp/scripts/structured_specs.py \
             skills/api-to-typemcp/scripts/manifest.py \
             skills/api-to-typemcp/scripts/approval.py \

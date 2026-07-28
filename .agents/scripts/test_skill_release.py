@@ -308,6 +308,8 @@ class SkillReleaseTests(unittest.TestCase):
             "requirements.txt",
             "scripts/api_to_typemcp.py",
             "scripts/intake.py",
+            "scripts/documents.py",
+            "scripts/swagger_ui.py",
             "scripts/structured_specs.py",
             "scripts/manifest.py",
             "scripts/approval.py",

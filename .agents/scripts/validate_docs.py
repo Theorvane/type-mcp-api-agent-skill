@@ -68,10 +68,18 @@ def main() -> int:
                 print(f"{relative_path} retains obsolete CLI boundary phrase: {phrase}")
                 return 1
 
+    stale_claims = ("`npm ci --ignore-scripts`", "approval challenge", "challenge ID", "RFC 8785/JCS canonical")
+    for relative_path in ACTIVE_SOURCE_DOCS:
+        content = (ROOT / relative_path).read_text(encoding="utf-8")
+        for phrase in stale_claims:
+            if phrase in content:
+                print(f"{relative_path} retains stale implemented-engine claim: {phrase}")
+                return 1
+
     contract_files = {
         "AGENTS.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest before generation", "before request construction"),
         "README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "Manifest first", "Contained verification"),
-        "docs/architecture/overview.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "single-use integrity-validated receipt", "before request construction"),
+        "docs/architecture/overview.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "single-use HMAC-validated receipt", "npm install --ignore-scripts"),
         "docs/api/manifest-contract.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "engine-specific deterministic encoding", "receipt is not an audit record"),
         "docs/guides/security-and-publication.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "before upstream request construction or dispatch", "npm install --ignore-scripts", "actual checked-out/ref-to-publish branch"),
         "docs/planning/README.md": (EMBEDDED_ENGINE_PHRASE, TYPE_MCP_RUNTIME, "protected-write authorization before request construction"),
