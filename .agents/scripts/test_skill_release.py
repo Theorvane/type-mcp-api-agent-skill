@@ -65,7 +65,7 @@ class SkillReleaseTests(unittest.TestCase):
                 else:
                     os.environ["GITHUB_OUTPUT"] = previous_output
 
-            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.4\ntag=v0.1.4\n")
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.2.0\ntag=v0.2.0\n")
 
     def test_version_extraction_step_rejects_invalid_numeric_prerelease_identifiers(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -85,7 +85,7 @@ class SkillReleaseTests(unittest.TestCase):
                 skill_path = root / "skills/api-to-typemcp/SKILL.md"
                 skill_path.parent.mkdir(parents=True)
                 skill_path.write_text(
-                    original.replace("version: 0.1.4", f"version: {invalid_version}"),
+                    original.replace("version: 0.2.0", f"version: {invalid_version}"),
                     encoding="utf-8",
                 )
                 previous_cwd = Path.cwd()
@@ -241,9 +241,9 @@ class SkillReleaseTests(unittest.TestCase):
             [
                 (200, {"data": [{"slug": "integration"}]}),
                 (200, {"slug": "api-to-typemcp", "status": "DRAFT"}),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.4"}),
-                (200, [{"version": "0.1.4"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.4"}),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
+                (200, [{"version": "0.2.0"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -256,7 +256,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.1.4",
+            "SKILL_VERSION": "0.2.0",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
@@ -278,8 +278,8 @@ class SkillReleaseTests(unittest.TestCase):
                 (200, {"slug": "api-to-typemcp", "status": "PUBLISHED"}),
                 (200, []),
                 (409, {"error": "version already exists"}),
-                (200, [{"version": "0.1.4"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.4"}),
+                (200, [{"version": "0.2.0"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -292,7 +292,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.1.4",
+            "SKILL_VERSION": "0.2.0",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
