@@ -1,8 +1,8 @@
 # Task brief: 48 — embed a TypeMCP project generator in api-to-typemcp
 
-**Status:** Tasks 1–7 complete; Task 8 pending
+**Status:** Tasks 1–8 complete; protected delivery pending PR review
 **Issue:** https://github.com/Theorvane/type-mcp-api-agent-skill/issues/48
-**Branch:** `feat/48-task7-skill-docs`
+**Branch:** `feat/48-task8-finalization`
 **Owner:** sjungwon03
 
 ## Goal
@@ -79,5 +79,6 @@ Task 1 deliberately does **not** add `scripts/api_to_typemcp.py`, engine behavio
 - [x] Documentation updated
 - [x] Engine unit/integration tests (Task 2)
 - [x] Generated-project E2E (Task 5)
-- [ ] Independent specification review recorded
-- [ ] Independent code-quality review recorded
+- [x] Independent specification review recorded (exact-head reviews for Tasks 5–7; final Task 7 approval at `c20b4dc`)
+- [x] Independent code-quality/security review recorded (exact-head review approval at `c20b4dc`)
+- [x] Task 8 complete verification: docs 8, workspace 3, branch governance 2, skill release 13, engine fast 94, contained E2E 6/6, release-promotion validation, py_compile, and diff check all passed.
