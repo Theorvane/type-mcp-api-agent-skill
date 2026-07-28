@@ -1,7 +1,7 @@
 ---
 name: api-to-typemcp
-description: Use when a user wants to turn an API URL, OpenAPI/Swagger file or link, Swagger UI, or Markdown/HTML API documentation into a standalone TypeMCP MCP project through the type-mcp-api-cli.
-version: 0.1.4
+description: Use when turning supplied API sources into a safe TypeMCP project.
+version: 0.2.0
 category: integration
 license: MIT
 metadata:
@@ -14,139 +14,70 @@ metadata:
 
 ## Overview
 
-This skill orchestrates the independently versioned `packages/type-mcp-api-cli` package in this workspace (or a future trusted npm release of that same package). It does not parse specifications, extract endpoints, create TypeScript templates, or substitute its own generator. The CLI is the deterministic engine; this skill is the approval, safety, verification, and publication layer.
+This released skill is a complete, bundled generator delivery unit. Its **bundled skill engine** is in `scripts/`, its controlled TypeScript output templates are in `templates/`, and its public TypeMCP runtime constraints are in [references/type-mcp-runtime.md](references/type-mcp-runtime.md).
 
-The target is a normal standalone TypeScript MCP repository whose runtime dependency is npm `type-mcp`.
-
-## Current availability
-
-The skill is installed and its orchestration guidance is available, even while no compatible CLI release is supported. It can explain the required source, manifest-approval, safety, verification, and publication workflow; it must **not** install or execute a candidate CLI, generate a project, run generated code, or publish output until the compatibility policy explicitly enables a release.
-
-When a user requests generation while the policy lists no supported release, give this safe outcome:
-
-> `api-to-typemcp` is installed, but no supported `type-mcp-api-cli` release is available yet. Project generation is intentionally blocked by the compatibility policy; no CLI was installed or executed. A maintainer must update [the canonical CLI compatibility policy](https://github.com/Theorvane/type-mcp-api-agent-skill/blob/dev/docs/guides/cli-compatibility.md) only after a reviewed CLI npm release is available; then retry.
-
-Do not replace the CLI with an in-workspace, global, `PATH`, or user-provided executable. The CLI release policy—not skill installation—controls whether generation may begin.
+Generated projects depend only on published `@theorvane/type-mcp@0.2.0`; they never copy TypeMCP source or use local, `file:`, `git:`, `link:`, or private runtime APIs.
 
 ## When to use
 
-Use this skill when the user provides or asks to use:
+Use this skill with a **supplied local** OpenAPI 3.x / Swagger 2.0 JSON/YAML file, supplied Swagger UI HTML, or supplied Markdown/HTML API reference. Do not use it to crawl a bare origin, infer undocumented operations, make mutating calls by default, or publish without explicit final confirmation.
 
-- an OpenAPI 3.x or Swagger 2.0 JSON/YAML URL or file;
-- a Swagger UI URL;
-- a Markdown/HTML API reference URL;
-- an API documentation URL plus a request to produce a maintainable TypeMCP MCP project.
+## Bundled engine workflow
 
-Do not use it for a bare base URL with no supplied API documentation. Do not use it to guess endpoints, execute mutating calls by default, or publish a repository without final confirmation.
-
-## Required user inputs
-
-Collect or infer only what is needed for the requested stage:
-
-| Stage | Required inputs |
-| --- | --- |
-| Inspect/manifest | API source URL/file and optionally desired CLI version/path |
-| Generate | An approved manifest plus an empty local output directory |
-| Publish | Confirmed GitHub owner/org, repository name, visibility, and source branch |
-
-For Markdown/HTML documents, manifest approval is mandatory. Do not proceed from candidate manifest to generation based on an implied or stale approval.
-
-## Workflow
-
-### 1. Establish the source and CLI
-
-1. Identify the source type: structured specification, Swagger UI, or supplied Markdown/HTML documentation.
-2. Resolve an exact CLI only through [`docs/guides/cli-compatibility.md`](../../docs/guides/cli-compatibility.md). Until that policy enables a release, stop and report that no CLI is supported.
-3. For an enabled release, use the policy's isolated npm-install/integrity/absolute-bin flow before executing anything. Treat metadata as compatibility validation after artifact provenance, never as provenance proof.
-4. Stop on incompatibility or an untrusted executable; report the missing requirement rather than reimplementing CLI behavior.
-
-**Completion criterion:** the selected CLI provenance (when a release is enabled) and sanitized source descriptor are recorded without any secret value; otherwise the workflow stops with the documented no-supported-CLI outcome.
-
-### 2. Inspect and obtain a manifest
-
-1. Invoke the CLI inspect stage on the supplied source.
-2. Invoke the manifest stage and receive a secret-free, versioned manifest plus safe diagnostics.
-3. Verify the manifest has source kind, content hash, operations, auth mapping names, confidence, evidence, warnings, a JCS-recomputable canonical `manifestDigest`, and a valid approval requirement/challenge.
-4. Independently recompute the digest from the closed versioned schema and RFC 8785 payload; stop on mismatch.
-5. Present the operation table, derived policy, challenge/receipt requirement, and warnings to the user.
-
-**Completion criterion:** there is one schema-valid manifest whose JCS-recomputed canonical digest, approval challenge requirement, CLI version, and schema/protocol versions are known.
-
-### 3. Apply approval and policy gates
-
-1. If the manifest is document-derived, display its exact canonical `manifestDigest` and explicit `challengeId`, then request user confirmation.
-2. After confirmation, invoke CLI `approve` in the isolated state directory. Retain the CLI-issued receipt separately; never edit the manifest to simulate approval.
-3. Provide the receipt to `generate`; require successful MAC/challenge/expiry/digest/version/protocol verification. A receipt is single-use.
-4. Let the user remove operations or adjust tool names, auth mapping names, and policy before approval.
-5. Derive `GET`/`HEAD`/`OPTIONS` as `read`; `POST`/`PUT`/`PATCH`/`DELETE` as `protected-write`; and unknown methods as `deny`. A parser may not change that mapping.
-6. Permit a policy override only as a visible, reasoned `approved-override` manifest edit; then recompute digest and obtain a new receipt if document-derived. Never override unknown methods from `deny`.
-7. If the manifest changes or receipt expires/is consumed, invalidate approval and repeat review.
-
-**Completion criterion:** every operation to generate is explicitly approved and write behavior is policy-gated.
-
-### 4. Generate through the CLI
-
-1. Confirm the local output directory is empty or user-approved for replacement.
-2. Invoke the CLI generation stage with the approved manifest and selected output directory.
-3. Do not inject secrets into CLI arguments, generated files, logs, or Git metadata.
-4. Confirm generated `package.json` declares npm `type-mcp`, not a path/file/git copy of its source.
-
-**Completion criterion:** the CLI reports generation metadata and all generated paths are under the approved output directory.
-
-### 5. Independently verify generated output
-
-Run generated-project checks only through the contained-verification policy in [`docs/guides/security-and-publication.md`](../../docs/guides/security-and-publication.md):
-
-1. use a fresh temporary workspace and scrubbed environment;
-2. inspect `package.json` and the lockfile, then run `npm ci --ignore-scripts`;
-3. keep upstream network calls disabled and use a local fixture/mock for the official-SDK MCP smoke test;
-4. run lifecycle scripts only inside that containment; and
-5. obtain separate explicit user approval before any authenticated/live-upstream smoke test.
-
-Within that boundary, run the generated project’s applicable checks:
+Run the engine through its installed skill-relative path. Set `SKILL_DIR` to the directory containing this `SKILL.md`; create a **controlled temporary output directory** yourself and keep it empty.
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run verify:package
-npm audit --omit=dev --audit-level=high
-git diff --check
+SKILL_DIR="/absolute/path/to/api-to-typemcp"
+SOURCE="/absolute/path/to/supplied-openapi.json"
+OUTPUT="$(mktemp -d -t api-to-typemcp-output.XXXXXX)"
+STATE="$(mktemp -d -t api-to-typemcp-state.XXXXXX)"
+export TYPE_MCP_APPROVAL_STATE_DIR="$STATE"
+
+# 1. Inspect and build the exact secret-free manifest.
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" inspect --file "$SOURCE" --json
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" manifest --file "$SOURCE" --json > manifest.json
+DIGEST="$(python3 -c 'import json; print(json.load(open("manifest.json"))["digest"])')"
+
+# 2. Review the manifest, then explicitly approve precisely that digest.
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" approve \
+  --file "$SOURCE" --manifest-digest "$DIGEST"
+
+# 3. Render only after approval, with an exact digest confirmation.
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" generate \
+  --file "$SOURCE" --output "$OUTPUT" \
+  --confirm-manifest-digest "$DIGEST"
 ```
 
-Verify a denied write-policy operation sends no upstream request. Treat failures as generator/manifest defects; do not patch generated source invisibly.
+For supplied Markdown or HTML, add an explicit origin; no page is fetched or crawled:
 
-**Completion criterion:** fresh tool output demonstrates the generated project uses installed npm `type-mcp` and passes its applicable checks.
+```bash
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" manifest \
+  --file "/absolute/path/to/reference.md" \
+  --base-url "https://api.example.test" --json
+```
 
-### 6. Publish only with final confirmation
+Swagger UI discovery is performed by `inspect` in-memory and returns only an explicit configured spec reference. The user must separately supply that structured spec; do not fetch it automatically.
 
-Immediately before GitHub creation/push, ask for and record confirmation of owner/org, repository name, visibility, and source branch. Before staging, committing, or pushing, resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Only after this ref verification, create, commit, push that verified ref, and read back the remote URL/default branch. Scan staged/tracked files for secrets before reporting success.
+## Mandatory safety gates
 
-**Completion criterion:** the user-confirmed repository exists remotely and contains the verified generated project with no credential-bearing artifact.
+1. **Manifest first.** Treat every source as untrusted. Review canonical secret-free manifest data before generation.
+2. **Receipt gate.** `approve` issues a HMAC-protected, digest-bound, single-use receipt. A changed, expired, tampered, or already-consumed receipt stops `generate`.
+3. **Output gate.** The output directory must already exist and be empty unless `--replace` is explicitly supplied. Symlinks and `..` traversal are rejected.
+4. **Runtime policy.** `GET`/`HEAD`/`OPTIONS` are read operations. `POST`/`PUT`/`PATCH`/`DELETE` are protected writes and require exact known IDs in `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` **before URL, query, headers, body, authentication, or dispatch**. Unknown methods deny.
+5. **Containment.** Verify generated projects in a scrubbed temporary workspace, with no inherited credentials, dependency inspection, no-lifecycle installation, typecheck, tests, build, and local MCP stdio smoke.
+6. **Publication.** **Immediately before GitHub publication**, record owner/org, repository name, visibility, and source branch. Resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Ask for explicit user confirmation before the publication action.
 
-## Authentication and error safety
+## Runtime compatibility
 
-- Use only environment-variable references plus approved header/query mappings.
-- Do not store or echo token values.
-- Return safe summaries of CLI/upstream errors; no stacks, authorization values, response secrets, or raw private specs.
-- If a source includes a likely credential, redact it from the review artifact and stop for user guidance.
-
-## Common pitfalls
-
-1. **Duplicating CLI behavior in the skill.** Fix or extend `type-mcp-api-cli`; do not add parser/template logic here.
-2. **Treating a documentation URL as an approved contract.** Markdown/HTML candidates always need explicit manifest approval.
-3. **Installing an arbitrary globally available CLI.** Validate package/version/protocol/schema before calling it.
-4. **Skipping generated-project verification.** A generated directory is not a deliverable until it installs npm `type-mcp` and runs through an official MCP transport.
-5. **Publishing too early.** GitHub repository creation/push has a separate final confirmation gate even after manifest approval.
+Read [references/type-mcp-runtime.md](references/type-mcp-runtime.md) before modifying generated TypeScript. Use only `McpServer`, `McpTool`, `createMcpServer`, `startStdioServer`, `zod`, and an explicit `InstanceResolver` from the public contract.
 
 ## Verification checklist
 
-- [ ] CLI provenance/version and manifest schema/protocol compatibility verified
-- [ ] Manifest is secret-free and evidence-backed
-- [ ] Document-derived manifest has a CLI-issued, unexpired, single-use receipt bound to the current JCS digest/version/protocol
-- [ ] Every approved operation generated; `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` exact-ID gate and deny-before-request-construction behavior are verified
-- [ ] Generated project installs npm `type-mcp` and passes applicable checks
-- [ ] Official-transport MCP smoke test passes
-- [ ] GitHub owner/name/visibility/branch confirmed immediately before publication
-- [ ] No secret or downloaded private specification is committed or published
+- [ ] Source is supplied explicitly; no origin crawling occurred.
+- [ ] Manifest is secret-free, evidence-backed, and canonically digested.
+- [ ] Digest approval and a valid single-use receipt precede generation.
+- [ ] Output target passed the empty/replace and traversal/symlink safety gates.
+- [ ] Protected writes are authorized before request construction.
+- [ ] Generated project uses published `@theorvane/type-mcp@0.2.0` only.
+- [ ] Contained install/typecheck/test/build/MCP smoke passes.
+- [ ] Immediately before GitHub publication, user confirms owner/name/visibility/source branch and the resolved branch matches.

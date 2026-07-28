@@ -65,7 +65,7 @@ class SkillReleaseTests(unittest.TestCase):
                 else:
                     os.environ["GITHUB_OUTPUT"] = previous_output
 
-            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.1.4\ntag=v0.1.4\n")
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "skill_version=0.2.0\ntag=v0.2.0\n")
 
     def test_version_extraction_step_rejects_invalid_numeric_prerelease_identifiers(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -85,7 +85,7 @@ class SkillReleaseTests(unittest.TestCase):
                 skill_path = root / "skills/api-to-typemcp/SKILL.md"
                 skill_path.parent.mkdir(parents=True)
                 skill_path.write_text(
-                    original.replace("version: 0.1.4", f"version: {invalid_version}"),
+                    original.replace("version: 0.2.0", f"version: {invalid_version}"),
                     encoding="utf-8",
                 )
                 previous_cwd = Path.cwd()
@@ -102,11 +102,13 @@ class SkillReleaseTests(unittest.TestCase):
                     else:
                         os.environ["GITHUB_OUTPUT"] = previous_output
 
-    def test_main_push_release_workflow_uses_the_skill_version_for_every_artifact(self) -> None:
+    def test_verified_main_push_release_workflow_uses_the_skill_version_for_every_artifact(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
+        verify = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
 
-        self.assertIn("push:", workflow)
-        self.assertIn("branches: [main]", workflow)
+        self.assertIn("workflow_call:", workflow)
+        self.assertIn("github.event_name == 'push'", verify)
+        self.assertIn("github.ref == 'refs/heads/main'", verify)
         self.assertIn("skills/api-to-typemcp/SKILL.md", workflow)
         self.assertIn("SKILL_VERSION", workflow)
         self.assertIn('tag=v{version}', workflow)
@@ -241,9 +243,9 @@ class SkillReleaseTests(unittest.TestCase):
             [
                 (200, {"data": [{"slug": "integration"}]}),
                 (200, {"slug": "api-to-typemcp", "status": "DRAFT"}),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.4"}),
-                (200, [{"version": "0.1.4"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.4"}),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
+                (200, [{"version": "0.2.0"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -256,7 +258,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.1.4",
+            "SKILL_VERSION": "0.2.0",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
@@ -278,8 +280,8 @@ class SkillReleaseTests(unittest.TestCase):
                 (200, {"slug": "api-to-typemcp", "status": "PUBLISHED"}),
                 (200, []),
                 (409, {"error": "version already exists"}),
-                (200, [{"version": "0.1.4"}]),
-                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.1.4"}),
+                (200, [{"version": "0.2.0"}]),
+                (200, {"slug": "api-to-typemcp", "status": "PUBLISHED", "latestVersion": "0.2.0"}),
             ]
         )
         calls: list[tuple[str, str]] = []
@@ -292,7 +294,7 @@ class SkillReleaseTests(unittest.TestCase):
 
         environment = {
             "SKILLS_HUB_AI_API_KEY": "test-key",
-            "SKILL_VERSION": "0.1.4",
+            "SKILL_VERSION": "0.2.0",
             "GITHUB_SHA": "test-sha",
             "GITHUB_REPOSITORY": "Theorvane/type-mcp-api-agent-skill",
         }
@@ -300,6 +302,65 @@ class SkillReleaseTests(unittest.TestCase):
             publisher.publish()
 
         self.assertEqual(calls.count(("POST", "/skills/api-to-typemcp/versions")), 1)
+
+    def test_release_contract_includes_complete_bundled_runtime_tree(self) -> None:
+        """Preflight must enumerate every renderer-required file, not directories."""
+        required = (
+            "SKILL.md",
+            "requirements.txt",
+            "scripts/api_to_typemcp.py",
+            "scripts/intake.py",
+            "scripts/documents.py",
+            "scripts/swagger_ui.py",
+            "scripts/structured_specs.py",
+            "scripts/manifest.py",
+            "scripts/approval.py",
+            "scripts/policy.py",
+            "scripts/render.py",
+            "scripts/verify_generated.py",
+            "templates/typescript-stdio/package.json.tmpl",
+            "templates/typescript-stdio/tsconfig.json.tmpl",
+            "templates/typescript-stdio/README.md.tmpl",
+            "templates/typescript-stdio/.env.example.tmpl",
+            "templates/typescript-stdio/src/index.ts.tmpl",
+            "templates/typescript-stdio/src/api-client.ts.tmpl",
+            "templates/typescript-stdio/src/policy.ts.tmpl",
+            "references/type-mcp-runtime.md",
+        )
+        skill_root = ROOT / "skills/api-to-typemcp"
+        for relative in required:
+            with self.subTest(relative=relative):
+                self.assertTrue((skill_root / relative).is_file())
+
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("Stage and verify bundled runtime artifact", workflow)
+        for relative in required:
+            with self.subTest(workflow_file=relative):
+                self.assertIn(f"skills/api-to-typemcp/{relative}", workflow)
+        self.assertIn("tar -tf", workflow)
+        self.assertLess(
+            workflow.index("Stage and verify bundled runtime artifact"),
+            workflow.index("Register the released skill in ClawHub"),
+        )
+
+    def test_publication_is_reusable_and_called_only_after_successful_main_verification(self) -> None:
+        """Publication must wait for the current main push verification graph."""
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        verify = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
+
+        self.assertIn("workflow_call:", workflow)
+        self.assertNotIn("push:\n    branches: [main]", workflow)
+        self.assertIn("release-skill:", verify)
+        self.assertIn("needs: [docs-and-harness, bundled-engine, e2e]", verify)
+        self.assertIn("github.event_name == 'push'", verify)
+        self.assertIn("github.ref == 'refs/heads/main'", verify)
+        self.assertIn("uses: ./.github/workflows/skill-release.yml", verify)
+        self.assertNotIn("secrets: inherit", verify)
+        self.assertIn("CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}", verify)
+        self.assertIn("SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}", verify)
+        self.assertIn("secrets:\n      CLAWHUB_TOKEN:\n        required: true", workflow)
+        self.assertIn("SKILLS_HUB_AI_API_KEY:\n        required: true", workflow)
+        self.assertIn("permissions:\n      contents: write", verify)
 
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")

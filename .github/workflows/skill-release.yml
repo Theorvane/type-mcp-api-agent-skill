@@ -1,8 +1,12 @@
 name: skill-release
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
+    secrets:
+      CLAWHUB_TOKEN:
+        required: true
+      SKILLS_HUB_AI_API_KEY:
+        required: true
 
 permissions:
   contents: read
@@ -14,6 +18,11 @@ jobs:
       skill_version: ${{ steps.version.outputs.skill_version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
+      - name: Require verified main-push invocation
+        run: |
+          test "$GITHUB_EVENT_NAME" = "push"
+          test "$GITHUB_REF" = "refs/heads/main"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
@@ -56,6 +65,35 @@ jobs:
               output.write(f"skill_version={version}\n")
               output.write(f"tag=v{version}\n")
           PY
+
+      - name: Stage and verify bundled runtime artifact
+        run: |
+          set -eu
+          artifact="$RUNNER_TEMP/api-to-typemcp-runtime.tar"
+          tar -cf "$artifact" skills/api-to-typemcp
+          for required in \
+            skills/api-to-typemcp/SKILL.md \
+            skills/api-to-typemcp/requirements.txt \
+            skills/api-to-typemcp/scripts/api_to_typemcp.py \
+            skills/api-to-typemcp/scripts/intake.py \
+            skills/api-to-typemcp/scripts/documents.py \
+            skills/api-to-typemcp/scripts/swagger_ui.py \
+            skills/api-to-typemcp/scripts/structured_specs.py \
+            skills/api-to-typemcp/scripts/manifest.py \
+            skills/api-to-typemcp/scripts/approval.py \
+            skills/api-to-typemcp/scripts/policy.py \
+            skills/api-to-typemcp/scripts/render.py \
+            skills/api-to-typemcp/scripts/verify_generated.py \
+            skills/api-to-typemcp/templates/typescript-stdio/package.json.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/tsconfig.json.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/README.md.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/.env.example.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/src/index.ts.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/src/api-client.ts.tmpl \
+            skills/api-to-typemcp/templates/typescript-stdio/src/policy.ts.tmpl \
+            skills/api-to-typemcp/references/type-mcp-runtime.md; do
+            tar -tf "$artifact" | grep -Fx "$required" >/dev/null
+          done
 
   release:
     needs: prepare
