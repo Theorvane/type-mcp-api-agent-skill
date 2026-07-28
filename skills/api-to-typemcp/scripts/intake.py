@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 MAX_SPEC_BYTES = 2 * 1024 * 1024
 
@@ -94,6 +94,22 @@ def load_local_document(file_name: str) -> tuple[Path, dict[str, Any]]:
     return path, document
 
 
+def _normalized_origin(value: str) -> tuple[str, str, int]:
+    """Return a normalized http(s) origin tuple with its effective port."""
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError
+    try:
+        port = parsed.port
+    except ValueError:
+        raise ValueError from None
+    return (
+        parsed.scheme.lower(),
+        parsed.hostname.lower(),
+        port if port is not None else (443 if parsed.scheme.lower() == "https" else 80),
+    )
+
+
 def load_supplied_source(file_name: str, *, base_url: str | None = None) -> tuple[Path, dict[str, Any], str]:
     """Load one explicit local structured spec or supplied API-reference document.
 
@@ -128,10 +144,7 @@ def load_supplied_source(file_name: str, *, base_url: str | None = None) -> tupl
         raise IntakeError("document contains no explicit HTTP method/path evidence")
 
     try:
-        parsed_base = urlsplit(base_url)
-        if parsed_base.scheme not in {"http", "https"} or not parsed_base.hostname:
-            raise ValueError
-        base_origin = urlunsplit((parsed_base.scheme, parsed_base.netloc, "", "", ""))
+        base_origin = _normalized_origin(base_url)
     except ValueError:
         raise IntakeError("document --base-url must be a valid http(s) origin") from None
 
@@ -140,7 +153,10 @@ def load_supplied_source(file_name: str, *, base_url: str | None = None) -> tupl
         candidate = op["path"]
         parsed = urlsplit(candidate)
         if parsed.scheme:
-            candidate_origin = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+            try:
+                candidate_origin = _normalized_origin(candidate)
+            except ValueError:
+                raise IntakeError("absolute operation URL must be a valid http(s) origin") from None
             if candidate_origin != base_origin:
                 raise IntakeError("absolute operation URL must match the explicit --base-url origin")
             path = parsed.path or "/"

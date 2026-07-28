@@ -42,6 +42,14 @@ class DocumentIntakeTests(unittest.TestCase):
         self.assertEqual(manifest["baseUrl"], "https://api.example.test")
         self.assertEqual(manifest["operations"][0]["path"], "/v1/pets")
 
+    def test_absolute_url_with_default_port_is_same_origin(self) -> None:
+        """https://host and https://host:443 are the same normalized origin."""
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "reference.md"
+            source.write_text("GET https://api.example.test:443/pets\n")
+            manifest = self._manifest(source, "https://api.example.test")
+        self.assertEqual(manifest["operations"][0]["path"], "/pets")
+
     def test_absolute_url_with_different_origin_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "reference.md"
