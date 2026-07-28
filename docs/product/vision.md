@@ -16,6 +16,8 @@ Creating a trustworthy MCP server for an external API requires interpreting hete
 - The bundled skill engine presents a secret-free, evidence-backed manifest before generation.
 - After the required approval and output-target confirmation, it renders every approved endpoint as a TypeMCP tool.
 - The generated server uses published `@theorvane/type-mcp`, exposes an exact-ID protected-write gate, and is verified in containment.
+- After verification, the skill asks whether to keep the generated project only or prepare opt-in installation into a detected agent. Project-only is the default.
+- Agent installation requires selected targets, a displayed secret-free plan, and final confirmation; unavailable clients receive portable export rather than a guessed configuration edit.
 - Only after explicit final confirmation can the skill create or push an output repository.
 
 ## Product principles
