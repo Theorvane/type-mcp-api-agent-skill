@@ -86,11 +86,17 @@ class GeneratedProjectE2ETests(unittest.TestCase):
         cls.tmp = Path(cls._tmp.name)
         cls.project = _generate_petstore_project(cls.tmp)
 
-        # Start mock upstream.
+        # Start mock upstream (bounded port read — 10 s timeout).
         cls._upstream_proc = subprocess.Popen(
             [sys.executable, str(MOCK_UPSTREAM)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
+        import selectors
+        sel = selectors.DefaultSelector()
+        sel.register(cls._upstream_proc.stdout, selectors.EVENT_READ)
+        ready = sel.select(timeout=10)
+        sel.close()
+        cls.assertTrue(ready, "Mock upstream did not print port within 10 s")
         port_line = cls._upstream_proc.stdout.readline().strip()
         cls.base_url = f"http://127.0.0.1:{port_line}"
 
@@ -180,6 +186,14 @@ class GeneratedProjectE2ETests(unittest.TestCase):
         if smoke_data.get("writeToolFound"):
             self.assertTrue(smoke_data.get("isError", False),
                             "Write tool succeeded without allowlist — policy bypass!")
+
+        # Verify the denied POST never reached the mock upstream.
+        import urllib.request
+        with urllib.request.urlopen(f"{self.base_url}/_stats", timeout=5) as resp:
+            stats = json.loads(resp.read())
+        post_count = sum(v for k, v in stats.items() if k.startswith("POST"))
+        self.assertEqual(post_count, 0,
+                         f"Denied write operation reached upstream: {stats}")
 
 
 @unittest.skipIf(SKIP_E2E, "TYPEMCP_E2E_SKIP=1")
