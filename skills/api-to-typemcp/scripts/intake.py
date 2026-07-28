@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 MAX_SPEC_BYTES = 2 * 1024 * 1024
 
@@ -126,18 +127,39 @@ def load_supplied_source(file_name: str, *, base_url: str | None = None) -> tupl
     if not operations:
         raise IntakeError("document contains no explicit HTTP method/path evidence")
 
+    try:
+        parsed_base = urlsplit(base_url)
+        if parsed_base.scheme not in {"http", "https"} or not parsed_base.hostname:
+            raise ValueError
+        base_origin = urlunsplit((parsed_base.scheme, parsed_base.netloc, "", "", ""))
+    except ValueError:
+        raise IntakeError("document --base-url must be a valid http(s) origin") from None
+
     paths: dict[str, dict[str, Any]] = {}
     for index, op in enumerate(operations, start=1):
-        path_item = paths.setdefault(op["path"], {})
+        candidate = op["path"]
+        parsed = urlsplit(candidate)
+        if parsed.scheme:
+            candidate_origin = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+            if candidate_origin != base_origin:
+                raise IntakeError("absolute operation URL must match the explicit --base-url origin")
+            path = parsed.path or "/"
+        else:
+            path = candidate
+        path_item = paths.setdefault(path, {})
         operation_id = f"document_{op['method'].lower()}_{index}"
         path_parameters = [
             {"name": name, "in": "path", "required": True, "schema": {"type": "string"}}
-            for name in re.findall(r"\{([A-Za-z][A-Za-z0-9_.-]{0,127})\}", op["path"])
+            for name in re.findall(r"\{([A-Za-z][A-Za-z0-9_.-]{0,127})\}", path)
         ]
+        internal_evidence = {
+            "line": op["evidence"]["line"],
+            "confidence": "explicit",
+        }
         path_item[op["method"].lower()] = {
             "operationId": operation_id,
             "parameters": path_parameters,
-            "x-api-to-typemcp-evidence": op["evidence"],
+            "x-api-to-typemcp-evidence": internal_evidence,
             "responses": {"200": {"description": "Document-derived operation"}},
         }
     document = {

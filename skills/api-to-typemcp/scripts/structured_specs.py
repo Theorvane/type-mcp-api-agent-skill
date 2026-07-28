@@ -303,13 +303,25 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
                 raise StructuredSpecError("parameters must be an array")
             parameters = _parameters(common_parameters + operation_parameters, swagger)
             _validate_path_template(path, parameters)
-            evidence = operation.get("x-api-to-typemcp-evidence")
-            if not (
-                isinstance(evidence, dict)
-                and isinstance(evidence.get("line"), int)
-                and isinstance(evidence.get("snippet"), str)
+            raw_evidence = operation.get("x-api-to-typemcp-evidence")
+            document_source = descriptor in {"local-markdown-document", "local-html-document"}
+            if document_source and (
+                isinstance(raw_evidence, dict)
+                and isinstance(raw_evidence.get("line"), int)
+                and raw_evidence["line"] > 0
+                and raw_evidence.get("confidence") == "explicit"
             ):
+                # Reconstruct evidence only from normalized operation fields;
+                # never persist arbitrary supplied prose or extension snippets.
+                evidence = {
+                    "source": "document",
+                    "line": raw_evidence["line"],
+                    "snippet": f"{method.upper()} {path}",
+                }
+                confidence: str | None = "explicit"
+            else:
                 evidence = {"source": "structured-spec"}
+                confidence = None
             item_value: dict[str, Any] = {
                 "operationId": operation_id,
                 "method": method.upper(),
@@ -318,6 +330,7 @@ def build_manifest(document: dict[str, Any], descriptor: str) -> dict[str, Any]:
                 "requestBody": _request_body(operation, swagger),
                 "responses": _responses(operation.get("responses")),
                 "evidence": evidence,
+                "confidence": confidence,
                 "status": "ready",
                 "policy": classify_method(method),
             }

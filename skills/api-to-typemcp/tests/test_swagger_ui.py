@@ -70,6 +70,14 @@ class SwaggerUIDiscoveryTests(unittest.TestCase):
         with self.assertRaises(SwaggerUIError):
             extract_spec_reference(html)
 
+    def test_unterminated_candidates_are_bounded(self) -> None:
+        """Many incomplete SwaggerUIBundle prefixes must not trigger regex backtracking."""
+        from swagger_ui import extract_spec_reference
+
+        # Valid-size adversarial input: all candidates are unterminated.
+        html = "SwaggerUIBundle({" * 80_000
+        self.assertIsNone(extract_spec_reference(html))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,15 +51,32 @@ class MarkdownExtractionTests(unittest.TestCase):
         self.assertEqual(ops, [])
 
     def test_evidence_snippets_are_redacted(self) -> None:
-        """Evidence snippets must not contain email addresses or secrets."""
+        """Evidence is deterministic endpoint-only text, never source prose."""
         from documents import extract_operations
 
-        md = "GET /pets\nContact admin@secret.com for the key sk-1234567890abcdef."
+        md = "GET /pets api_key=supersecretvalue Authorization: Bearer TOPSECRET_123456"
         ops = extract_operations(md, source_kind="markdown")
         self.assertEqual(len(ops), 1)
         snippet = ops[0]["evidence"]["snippet"]
-        self.assertNotIn("admin@secret.com", snippet)
-        self.assertNotIn("sk-1234567890abcdef", snippet)
+        self.assertEqual(snippet, "GET /pets")
+        self.assertNotIn("supersecretvalue", snippet)
+        self.assertNotIn("TOPSECRET_123456", snippet)
+
+    def test_rejects_dot_segment_paths(self) -> None:
+        """Paths whose runtime normalization changes the target are rejected."""
+        from documents import DocumentError, extract_operations
+
+        for path in ("/public/../admin", "/public/%2e%2e/admin", "/./admin"):
+            with self.subTest(path=path):
+                with self.assertRaises(DocumentError):
+                    extract_operations(f"GET {path}", source_kind="markdown")
+
+    def test_absolute_candidate_is_supported(self) -> None:
+        """Clear absolute HTTP URLs are retained for intake normalization."""
+        from documents import extract_operations
+
+        ops = extract_operations("GET https://api.example.test/v1/pets", source_kind="markdown")
+        self.assertEqual(ops[0]["path"], "https://api.example.test/v1/pets")
 
 
 class HtmlExtractionTests(unittest.TestCase):

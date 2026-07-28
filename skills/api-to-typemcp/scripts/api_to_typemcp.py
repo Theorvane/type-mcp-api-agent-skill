@@ -98,7 +98,7 @@ def _cmd_inspect(args: argparse.Namespace) -> None:
         kind = "unknown"
 
     _emit({
-        "source": {"kind": kind, "descriptor": "local-structured-spec"},
+        "source": {"kind": kind, "descriptor": descriptor},
         "api_version": document.get("openapi") or document.get("swagger", ""),
         "title": document.get("info", {}).get("title", ""),
         "version": document.get("info", {}).get("version", ""),
