@@ -301,6 +301,27 @@ class SkillReleaseTests(unittest.TestCase):
 
         self.assertEqual(calls.count(("POST", "/skills/api-to-typemcp/versions")), 1)
 
+    def test_release_contract_includes_complete_bundled_runtime_tree(self) -> None:
+        """Published artifacts must contain engine scripts, templates, and references."""
+        skill_root = ROOT / "skills/api-to-typemcp"
+        self.assertTrue((skill_root / "scripts/api_to_typemcp.py").is_file())
+        self.assertTrue((skill_root / "templates/typescript-stdio").is_dir())
+        self.assertTrue((skill_root / "references/type-mcp-runtime.md").is_file())
+
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        # Packaging verification happens before either registry publication.
+        self.assertIn("Verify packaged bundled runtime tree", workflow)
+        for required in (
+            "scripts/api_to_typemcp.py",
+            "templates/typescript-stdio",
+            "references/type-mcp-runtime.md",
+        ):
+            self.assertIn(required, workflow)
+        self.assertLess(
+            workflow.index("Verify packaged bundled runtime tree"),
+            workflow.index("Register the released skill in ClawHub"),
+        )
+
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
 

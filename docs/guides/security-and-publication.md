@@ -1,6 +1,6 @@
 # Security, policy, verification, and publication guide
 
-**Status:** Approved embedded-engine contract; implementation is staged.
+**Status:** Executable embedded-engine safety contract; publication remains separately confirmed.
 
 ## Bounded source intake and secret-safe evidence
 

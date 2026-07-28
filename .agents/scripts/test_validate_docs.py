@@ -96,6 +96,22 @@ class EmbeddedEngineDocumentationValidatorTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assert_validator_fails_after_removal(".agents/checklists/release-readiness.md", phrase)
 
+    def test_skill_documents_the_executable_bundled_engine_workflow(self) -> None:
+        """Installed agents need exact commands and mandatory safety gates."""
+        content = (ROOT / "skills/api-to-typemcp/SKILL.md").read_text(encoding="utf-8")
+        for phrase in (
+            "api_to_typemcp.py",
+            "manifest",
+            "approve",
+            "generate",
+            "--confirm-manifest-digest",
+            "controlled temporary output directory",
+            "Immediately before GitHub publication",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, content)
+        self.assertNotIn("executable engine, templates, and generated-project E2E arrive", content)
+
     def test_validator_preserves_execution_and_containment_safety_contracts(self) -> None:
         for relative_path, phrase in (
             ("docs/guides/security-and-publication.md", "before upstream request construction or dispatch"),

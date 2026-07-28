@@ -1,6 +1,6 @@
 # API manifest and embedded-engine contract
 
-**Status:** Contract approved; bundled-engine implementation is staged.
+**Status:** Executable bundled-engine contract implemented; release publication is separate.
 
 The manifest is the **bundled skill engine** review boundary. It is versioned, JSON-serializable, secret-free, schema-validated, and canonically hashed. Persisted/displayed source identifiers and evidence are sanitized under `docs/guides/security-and-publication.md`; original URLs, redirects, local paths, credentials, and raw private diagnostics are never manifest fields.
 
@@ -16,7 +16,7 @@ The manifest is not an approval credential. A document-derived manifest becomes 
 | `generate` | eligible manifest, valid receipt if required, confirmed output path | rendered project and generation metadata | local output only; no GitHub publication |
 | `verify` | generated project copy | contained static/install/test evidence | no live upstream without separate approval |
 
-Exact commands are added with the executable engine in later tasks; these stages define its contract and do not claim a current implementation.
+The entrypoint is `skills/api-to-typemcp/scripts/api_to_typemcp.py`. It exposes `inspect`, `manifest`, `approve`, and `generate` for supplied local sources. `manifest` emits canonical JSON including `digest`; `approve --manifest-digest <digest>` issues the single-use receipt; `generate --confirm-manifest-digest <digest> --output <existing-empty-dir>` consumes it and renders the stdio project. Markdown/HTML requires an explicit `--base-url`; supplied Swagger UI HTML is inspected in-memory only and its configured structured spec must then be supplied separately. These commands never fetch/crawl an origin or publish GitHub output.
 
 ## Schema and canonical digest
 

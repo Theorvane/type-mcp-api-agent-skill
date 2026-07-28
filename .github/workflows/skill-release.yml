@@ -57,6 +57,14 @@ jobs:
               output.write(f"tag=v{version}\n")
           PY
 
+      - name: Verify packaged bundled runtime tree
+        run: |
+          test -f skills/api-to-typemcp/SKILL.md
+          test -f skills/api-to-typemcp/scripts/api_to_typemcp.py
+          test -d skills/api-to-typemcp/templates/typescript-stdio
+          test -f skills/api-to-typemcp/references/type-mcp-runtime.md
+          test -f skills/api-to-typemcp/requirements.txt
+
   release:
     needs: prepare
     runs-on: ubuntu-latest
