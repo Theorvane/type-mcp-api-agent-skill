@@ -2,6 +2,11 @@ name: skill-release
 
 on:
   workflow_call:
+    secrets:
+      CLAWHUB_TOKEN:
+        required: true
+      SKILLS_HUB_AI_API_KEY:
+        required: true
 
 permissions:
   contents: read

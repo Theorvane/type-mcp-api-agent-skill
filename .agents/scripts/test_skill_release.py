@@ -355,7 +355,11 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertIn("github.event_name == 'push'", verify)
         self.assertIn("github.ref == 'refs/heads/main'", verify)
         self.assertIn("uses: ./.github/workflows/skill-release.yml", verify)
-        self.assertIn("secrets: inherit", verify)
+        self.assertNotIn("secrets: inherit", verify)
+        self.assertIn("CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}", verify)
+        self.assertIn("SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}", verify)
+        self.assertIn("secrets:\n      CLAWHUB_TOKEN:\n        required: true", workflow)
+        self.assertIn("SKILLS_HUB_AI_API_KEY:\n        required: true", workflow)
         self.assertIn("permissions:\n      contents: write", verify)
 
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:

@@ -72,4 +72,6 @@ jobs:
     permissions:
       contents: write
     uses: ./.github/workflows/skill-release.yml
-    secrets: inherit
+    secrets:
+      CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+      SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}
