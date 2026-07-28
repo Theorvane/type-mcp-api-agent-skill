@@ -3,5 +3,5 @@
 import { createMcpServer, startStdioServer } from "@theorvane/type-mcp";
 import { $SERVER_CLASS } from "./server.js";
 
-const server = createMcpServer($SERVER_CLASS);
-startStdioServer(server);
+const server = await createMcpServer($SERVER_CLASS);
+await startStdioServer(server);
