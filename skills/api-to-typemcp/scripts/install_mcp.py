@@ -135,6 +135,35 @@ def _server_container(config: dict[str, object], client_id: str) -> dict[str, ob
     return servers
 
 
+def _restore_target(target: InstallTarget) -> None:
+    """Restore a previously successful target from its exclusive same-dir backup."""
+    path = target.config_path
+    parent_fd = _open_directory(path.parent)
+    try:
+        backup, _ = _read_regular(parent_fd, target.backup_path.name)
+        _current, identity = _read_regular(parent_fd, path.name)
+        _atomic_replace(parent_fd, path.name, backup, identity)
+    finally:
+        os.close(parent_fd)
+
+
+def _verify_written_target(target: InstallTarget, *, json_target: bool) -> None:
+    parent_fd = _open_directory(target.config_path.parent)
+    try:
+        payload, _ = _read_regular(parent_fd, target.config_path.name)
+    finally:
+        os.close(parent_fd)
+    try:
+        if json_target:
+            if not isinstance(json.loads(payload.decode("utf-8")), dict):
+                raise InstallError("post-write configuration root is not an object")
+        else:
+            import tomllib
+            tomllib.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise InstallError("post-write configuration reread failed") from exc
+
+
 def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bool, verifier: Callable[[], bool] | None = None) -> ApplyResult:
     path = target.config_path
     parent_fd = _open_directory(path.parent)
@@ -165,6 +194,7 @@ def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bo
         _assert_current_state(parent_fd, path.name, identity, original_digest)
         try:
             _atomic_replace(parent_fd, path.name, updated, identity)
+            _verify_written_target(target, json_target=json_target)
             if verifier is not None and not verifier():
                 raise InstallError("target verification failed")
         except Exception as exc:
@@ -181,7 +211,7 @@ def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bo
             raise InstallError("installation failed; target was restored") from exc
     finally:
         os.close(parent_fd)
-    return ApplyResult(path, target.backup_path, "verified" if verifier else "written")
+    return ApplyResult(path, target.backup_path, "verified")
 
 
 def _apply_json_target(target: InstallTarget, spec: McpServerSpec, *, verifier: Callable[[], bool] | None = None) -> ApplyResult:
@@ -203,20 +233,42 @@ def _consume_plan(plan: InstallPlan, spec: McpServerSpec, allowed: set[str]) -> 
         raise InstallError(str(exc)) from exc
 
 
-def apply_native_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:
-    """Consume one receipt and apply each supported native adapter once."""
-    _consume_plan(plan, spec, {"codex", "cursor", "vscode-copilot", "gemini-cli", "opencode"})
+def _apply_batch(
+    plan: InstallPlan,
+    spec: McpServerSpec,
+    *,
+    allowed: set[str],
+    verifiers: dict[str, Callable[[], bool]] | None = None,
+) -> tuple[ApplyResult, ...]:
+    _consume_plan(plan, spec, allowed)
     checks = verifiers or {}
-    return tuple(
-        _apply_codex_target(target, spec) if target.client_id == "codex" else _apply_json_target(target, spec, verifier=checks.get(target.client_id))
-        for target in plan.targets
-    )
+    completed: list[tuple[InstallTarget, ApplyResult]] = []
+    try:
+        for target in plan.targets:
+            result = _apply_codex_target(target, spec) if target.client_id == "codex" else _apply_json_target(target, spec, verifier=checks.get(target.client_id))
+            completed.append((target, result))
+    except Exception as exc:
+        rollback_failures: list[Exception] = []
+        for completed_target, _result in reversed(completed):
+            try:
+                _restore_target(completed_target)
+            except Exception as rollback_error:
+                rollback_failures.append(rollback_error)
+        if rollback_failures:
+            raise InstallError("batch installation failed and rollback failed") from rollback_failures[0]
+        if isinstance(exc, InstallError):
+            raise
+        raise InstallError("batch installation failed; prior targets were restored") from exc
+    return tuple(result for _target, result in completed)
+
+
+def apply_native_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:
+    """Consume one receipt and atomically apply supported native adapters."""
+    return _apply_batch(plan, spec, allowed={"codex", "cursor", "vscode-copilot", "gemini-cli", "opencode"}, verifiers=verifiers)
 
 
 def apply_json_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:
-    _consume_plan(plan, spec, {"cursor", "vscode-copilot", "gemini-cli", "opencode"})
-    checks = verifiers or {}
-    return tuple(_apply_json_target(target, spec, verifier=checks.get(target.client_id)) for target in plan.targets)
+    return _apply_batch(plan, spec, allowed={"cursor", "vscode-copilot", "gemini-cli", "opencode"}, verifiers=verifiers)
 
 
 def apply_json_target(target: InstallTarget, spec: McpServerSpec, *, plan: InstallPlan, verifier: Callable[[], bool] | None = None) -> ApplyResult:

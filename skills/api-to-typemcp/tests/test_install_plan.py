@@ -42,6 +42,10 @@ class InstallPlanTests(unittest.TestCase):
         self.assertRegex(public["targets"][0]["config_fingerprint"], r"^sha256:[0-9a-f]{64}$")
         self.assertIn("TYPE_MCP_API_KEY", json.dumps(public))
         self.assertNotIn("real-secret", json.dumps(public))
+    def test_plan_rejects_missing_native_configuration(self) -> None:
+        with self.assertRaises(InstallPlanError):
+            build_plan(self.spec, selected=("gemini-cli",), home=self.home)
+
     def test_duplicate_name_requires_explicit_replace(self) -> None:
         (self.home / ".cursor").mkdir(); (self.home / ".cursor/mcp.json").write_text('{"mcpServers":{"petstore-mcp":{}}}')
         with self.assertRaises(InstallPlanError):
@@ -124,6 +128,7 @@ class InstallPlanTests(unittest.TestCase):
         plan = build_plan(self.spec, selected=("codex",), home=self.home)
         issue_install_receipt(plan)
         (self.home / ".cursor").mkdir()
+        (self.home / ".cursor" / "mcp.json").write_text('{"mcpServers":{}}\n')
         changed_plan = build_plan(self.spec, selected=("codex", "cursor"), home=self.home)
 
         with self.assertRaises(InstallPlanError):

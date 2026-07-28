@@ -100,8 +100,10 @@ python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-plan \
 PLAN_DIGEST="...shown by install-plan..."
 python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-approve --plan-digest "$PLAN_DIGEST"
 
-# 4. Apply only the unchanged approved plan. Each native target gets a 0600 backup;
-#    changes use atomic replacement and target-local rollback on verification failure.
+# 4. Apply only the unchanged approved plan. Native registration is fail-closed
+#    unless the selected client already has a detected regular config file. Each
+#    target gets a 0600 backup; a later target failure restores earlier targets,
+#    and every write is reread/parsed before success is reported.
 python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-apply \
   --project "$OUTPUT" --targets "cursor,gemini-cli" --confirm-plan-digest "$PLAN_DIGEST"
 ```

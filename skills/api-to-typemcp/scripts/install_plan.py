@@ -134,10 +134,11 @@ def build_plan(spec: McpServerSpec, *, selected: tuple[str, ...], home: Path) ->
     for client in selected:
         path = _target_path(root, client)
         fingerprint = _fingerprint(path, root=root)
+        if not path.is_file():
+            raise InstallPlanError("native installation requires an existing detected configuration; use portable export instead")
         if _has_duplicate(path, client, spec.name):
             raise InstallPlanError("existing MCP server name requires a separate replace plan")
-        action = "add" if path.exists() else "create"
-        targets.append(InstallTarget(client, path, action, fingerprint, path.with_name(path.name + ".api-to-typemcp.bak"), "config-reread"))
+        targets.append(InstallTarget(client, path, "add", fingerprint, path.with_name(path.name + ".api-to-typemcp.bak"), "config-reread"))
     return InstallPlan(spec, tuple(targets))
 
 

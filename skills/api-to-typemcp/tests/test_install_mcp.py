@@ -76,9 +76,22 @@ class AtomicInstallTests(unittest.TestCase):
 
         results = apply_json_plan(plan, self.spec)
 
-        self.assertEqual([result.status for result in results], ["written", "written"])
+        self.assertEqual([result.status for result in results], ["verified", "verified"])
         self.assertIn("petstore-mcp", json.loads(self.config.read_text())["mcpServers"])
         self.assertIn("petstore-mcp", json.loads((gemini / "settings.json").read_text())["mcpServers"])
+
+    def test_batch_failure_restores_prior_target(self) -> None:
+        gemini = self.home / ".gemini"; gemini.mkdir()
+        gemini_config = gemini / "settings.json"; gemini_original = b'{"mcpServers":{}}\n'; gemini_config.write_bytes(gemini_original)
+        plan = build_plan(self.spec, selected=("cursor", "gemini-cli"), home=self.home)
+        plan.targets[1].backup_path.write_text("block later backup", encoding="utf-8")
+        issue_install_receipt(plan)
+
+        with self.assertRaises(InstallError):
+            apply_json_plan(plan, self.spec)
+
+        self.assertEqual(self.config.read_bytes(), self.original)
+        self.assertEqual(gemini_config.read_bytes(), gemini_original)
 
     def test_opencode_uses_its_native_mcp_servers_shape(self) -> None:
         opencode_dir = self.home / ".config/opencode"; opencode_dir.mkdir(parents=True)
