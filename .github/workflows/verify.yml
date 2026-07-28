@@ -42,5 +42,23 @@ jobs:
           python3 .agents/scripts/test_validate_docs.py
           python3 .agents/scripts/validate_docs.py
           python3 -m py_compile skills/api-to-typemcp/scripts/*.py
-          python3 -m unittest discover -s skills/api-to-typemcp/tests -v
+          TYPEMCP_E2E_SKIP=1 python3 -m unittest discover -s skills/api-to-typemcp/tests -v
           git diff --check
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: bundled-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Contained E2E verification of generated projects
+        run: |
+          python3 -m pip install --requirement skills/api-to-typemcp/requirements.txt
+          python3 -m unittest discover -s skills/api-to-typemcp/tests -p 'test_generated_project_e2e.py' -v
+        env:
+          TYPEMCP_E2E_SKIP: ""

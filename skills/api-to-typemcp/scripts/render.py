@@ -259,7 +259,7 @@ def _schemas_ts(operations: list[dict[str, Any]]) -> str:
             lines.append(f"  {pname}: {ptype},")
         body = op.get("requestBody")
         if body and body.get("type") == "object":
-            lines.append("  body: z.record(z.unknown()),")
+            lines.append("  body: z.record(z.string(), z.unknown()),")
         lines.append("});")
         lines.append("")
     return "\n".join(lines)
@@ -311,7 +311,7 @@ def _server_ts(
         desc = f"{method} {path}"
 
         lines.append(
-            f"  @McpTool({{ name: {json.dumps(oid)}, description: {json.dumps(desc)} }})"
+            f"  @McpTool({{ name: {json.dumps(oid)}, description: {json.dumps(desc)}, input: {schema_name} }})"
         )
         lines.append(
             f"  async {name}(input: z.infer<typeof {schema_name}>) {{"

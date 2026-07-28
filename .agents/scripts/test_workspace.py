@@ -32,6 +32,10 @@ class EmbeddedEngineWorkspaceTests(unittest.TestCase):
         self.assertTrue((SKILL / "templates/typescript-stdio/package.json.tmpl").is_file())
         self.assertTrue((SKILL / "templates/typescript-stdio/src/index.ts.tmpl").is_file())
         self.assertTrue((SKILL / "templates/typescript-stdio/src/policy.ts.tmpl").is_file())
+        # Task 5: contained E2E verification scripts must exist.
+        self.assertTrue((SKILL / "scripts/verify_generated.py").is_file())
+        self.assertTrue((SKILL / "tests/fixtures/mock_upstream.py").is_file())
+        self.assertTrue((SKILL / "tests/test_generated_project_e2e.py").is_file())
 
     def test_obsolete_cli_workspace_is_removed(self) -> None:
         self.assertFalse(CLI.exists(), "the generator must not retain a CLI package workspace")
