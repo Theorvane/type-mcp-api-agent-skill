@@ -144,7 +144,7 @@ def build_plan(spec: McpServerSpec, *, selected: tuple[str, ...], home: Path) ->
 def write_portable_export(project: Path, spec: McpServerSpec) -> Path:
     spec = _snapshot_spec(spec)
     root = project.resolve()
-    if project.is_symlink() or not root.is_dir(): raise InstallPlanError("portable export project must be a non-symlink directory")
+    if _has_symlink_ancestor(project) or project.is_symlink() or not root.is_dir(): raise InstallPlanError("portable export project must be a non-symlink directory")
     directory = root / "agent-install"
     if directory.exists() and (directory.is_symlink() or not directory.is_dir()):
         raise InstallPlanError("portable export directory must not be a symlink or file")

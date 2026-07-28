@@ -94,6 +94,15 @@ class InstallPlanTests(unittest.TestCase):
         with self.assertRaises(InstallPlanError):
             write_portable_export(self.project, self.spec)
 
+    def test_portable_export_rejects_project_with_symlinked_ancestor(self) -> None:
+        outside = self.root / "outside-project"
+        (outside / "project").mkdir(parents=True)
+        linked_parent = self.root / "project-parent-link"
+        linked_parent.symlink_to(outside, target_is_directory=True)
+
+        with self.assertRaises(InstallPlanError):
+            write_portable_export(linked_parent / "project", self.spec)
+
     def test_install_receipt_is_bound_to_exact_plan_and_single_use(self) -> None:
         plan = build_plan(self.spec, selected=("codex",), home=self.home)
         receipt = issue_install_receipt(plan)
