@@ -15,6 +15,9 @@ SKILL_DIR = REPO_ROOT / "skills" / "api-to-typemcp"
 ENTRY = SKILL_DIR / "scripts" / "api_to_typemcp.py"
 FIXTURES = SKILL_DIR / "tests" / "fixtures"
 
+sys.path.insert(0, str(SKILL_DIR / "scripts"))
+import render  # noqa: E402
+
 
 def run_cli(args: list[str], env_extra: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
@@ -171,6 +174,75 @@ class RenderTests(unittest.TestCase):
         ]
         for rel in expected:
             self.assertTrue((out / rel).exists(), f"Missing: {rel}")
+
+
+class IdentifierSafetyTests(unittest.TestCase):
+    """Regression tests for Stage 2 findings: collision & reserved words."""
+
+    def _generate_from_ops(self, operation_ids: list[str]) -> dict:
+        """Build a minimal OpenAPI spec with the given operationIds and render."""
+        spec = {
+            "openapi": "3.0.0",
+            "info": {"title": "Collision Test", "version": "1.0.0"},
+            "servers": [{"url": "https://api.example.com"}],
+            "paths": {},
+        }
+        for i, op_id in enumerate(operation_ids):
+            path = f"/item/{i}"
+            spec["paths"][path] = {
+                "get": {
+                    "operationId": op_id,
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".json", mode="w", delete=False
+        ) as f:
+            json.dump(spec, f)
+            spec_path = f.name
+
+        try:
+            result = subprocess.run(
+                [sys.executable, str(ENTRY), "manifest", "--file", spec_path, "--json"],
+                capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = json.loads(result.stdout)
+            with tempfile.TemporaryDirectory() as td:
+                out = Path(td) / "proj"
+                out.mkdir()
+                written = render.render_project(manifest, out)
+                server = (out / "src" / "server.ts").read_text()
+                schemas = (out / "src" / "schemas.ts").read_text()
+            return {"written": written, "server": server, "schemas": schemas}
+        finally:
+            os.unlink(spec_path)
+
+    def test_collision_suffix_does_not_duplicate_existing_name(self) -> None:
+        """foo-bar, foo_bar, foo_bar_1 must produce 3 distinct identifiers."""
+        result = self._generate_from_ops(["foo-bar", "foo_bar", "foo_bar_1"])
+        # Extract method names from server.ts
+        import re as _re
+        methods = _re.findall(r"async (\w+)\(", result["server"])
+        # Filter out constructor and known non-op methods
+        methods = [m for m in methods if m not in ("constructor",)]
+        self.assertEqual(len(methods), len(set(methods)),
+                         f"Duplicate method names: {methods}")
+        self.assertEqual(len(methods), 3)
+
+    def test_reserved_words_get_prefix(self) -> None:
+        """operationIds that are TS reserved words must not be emitted raw."""
+        result = self._generate_from_ops(["import", "class", "delete", "return"])
+        server = result["server"]
+        schemas = result["schemas"]
+        # None of the raw reserved words should appear as identifiers
+        for word in ("import", "class", "delete", "return"):
+            # They should appear as _import, _class, etc.
+            self.assertNotIn(f"async {word}(", server,
+                             f"Reserved word '{word}' emitted as method name")
+            self.assertNotIn(f"export const {word}Input", schemas,
+                             f"Reserved word '{word}' emitted as schema name")
 
 
 if __name__ == "__main__":

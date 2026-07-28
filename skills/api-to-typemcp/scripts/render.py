@@ -113,26 +113,45 @@ def _pascal_case(name: str) -> str:
     return "".join(p.capitalize() for p in parts if p) or "Generated"
 
 
+# TypeScript reserved words that must not be emitted as identifiers.
+_TS_RESERVED = frozenset({
+    "abstract", "any", "as", "asserts", "async", "await", "bigint", "boolean",
+    "break", "case", "catch", "class", "const", "continue", "debugger",
+    "declare", "default", "delete", "do", "else", "enum", "export", "extends",
+    "false", "finally", "for", "from", "function", "get", "if", "implements",
+    "import", "in", "infer", "instanceof", "interface", "is", "keyof", "let",
+    "module", "namespace", "never", "new", "null", "number", "object", "of",
+    "package", "private", "protected", "public", "readonly", "require",
+    "return", "set", "static", "string", "super", "switch", "symbol", "this",
+    "throw", "true", "try", "type", "typeof", "undefined", "unique", "unknown",
+    "var", "void", "while", "with", "yield",
+})
+
+
 def _safe_identifier(name: str) -> str:
     """Convert an arbitrary string to a valid TypeScript identifier."""
     ident = re.sub(r"[^a-zA-Z0-9_$]", "_", name)
     if ident and ident[0].isdigit():
-        ident = "_" + ident
-    return ident or "_unnamed"
+        ident = f"_{ident}"
+    ident = ident or "_unnamed"
+    if ident in _TS_RESERVED:
+        ident = f"_{ident}"
+    return ident
 
 
 def _unique_identifiers(names: list[str]) -> dict[str, str]:
     """Map raw names to collision-free TypeScript identifiers."""
     result: dict[str, str] = {}
-    seen: dict[str, int] = {}
+    seen: set[str] = set()
     for name in names:
         base = _safe_identifier(name)
-        if base in seen:
-            seen[base] += 1
-            result[name] = f"{base}_{seen[base]}"
-        else:
-            seen[base] = 0
-            result[name] = base
+        candidate = base
+        counter = 1
+        while candidate in seen:
+            candidate = f"{base}_{counter}"
+            counter += 1
+        seen.add(candidate)
+        result[name] = candidate
     return result
 
 
