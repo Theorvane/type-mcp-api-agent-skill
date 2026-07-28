@@ -1,8 +1,12 @@
 name: skill-release
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
+    secrets:
+      CLAWHUB_TOKEN:
+        required: true
+      SKILLS_HUB_AI_API_KEY:
+        required: true
 
 permissions:
   contents: read
@@ -14,6 +18,11 @@ jobs:
       skill_version: ${{ steps.version.outputs.skill_version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
+      - name: Require verified main-push invocation
+        run: |
+          test "$GITHUB_EVENT_NAME" = "push"
+          test "$GITHUB_REF" = "refs/heads/main"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0

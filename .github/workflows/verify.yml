@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -26,7 +28,11 @@ jobs:
           python3 .agents/scripts/validate_branch_governance.py
           python3 .agents/scripts/validate_release_promotion.py
           python3 -m py_compile .agents/scripts/validate_docs.py .agents/scripts/test_validate_docs.py .agents/scripts/test_workspace.py .agents/scripts/validate_branch_governance.py .agents/scripts/test_validate_branch_governance.py .agents/scripts/validate_release_promotion.py
-          git diff --check
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}" "$GITHUB_SHA"
+          else
+            git diff --check "${{ github.event.before }}" "$GITHUB_SHA"
+          fi
 
   bundled-engine:
     runs-on: ubuntu-latest
@@ -60,5 +66,12 @@ jobs:
         run: |
           python3 -m pip install --requirement skills/api-to-typemcp/requirements.txt
           python3 -m unittest discover -s skills/api-to-typemcp/tests -p 'test_generated_project_e2e.py' -v
-        env:
-          TYPEMCP_E2E_SKIP: ""
+  release-skill:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [docs-and-harness, bundled-engine, e2e]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/skill-release.yml
+    secrets:
+      CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+      SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}

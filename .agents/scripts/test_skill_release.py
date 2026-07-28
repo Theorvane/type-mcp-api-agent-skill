@@ -102,11 +102,13 @@ class SkillReleaseTests(unittest.TestCase):
                     else:
                         os.environ["GITHUB_OUTPUT"] = previous_output
 
-    def test_main_push_release_workflow_uses_the_skill_version_for_every_artifact(self) -> None:
+    def test_verified_main_push_release_workflow_uses_the_skill_version_for_every_artifact(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
+        verify = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
 
-        self.assertIn("push:", workflow)
-        self.assertIn("branches: [main]", workflow)
+        self.assertIn("workflow_call:", workflow)
+        self.assertIn("github.event_name == 'push'", verify)
+        self.assertIn("github.ref == 'refs/heads/main'", verify)
         self.assertIn("skills/api-to-typemcp/SKILL.md", workflow)
         self.assertIn("SKILL_VERSION", workflow)
         self.assertIn('tag=v{version}', workflow)
@@ -340,6 +342,25 @@ class SkillReleaseTests(unittest.TestCase):
             workflow.index("Stage and verify bundled runtime artifact"),
             workflow.index("Register the released skill in ClawHub"),
         )
+
+    def test_publication_is_reusable_and_called_only_after_successful_main_verification(self) -> None:
+        """Publication must wait for the current main push verification graph."""
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        verify = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
+
+        self.assertIn("workflow_call:", workflow)
+        self.assertNotIn("push:\n    branches: [main]", workflow)
+        self.assertIn("release-skill:", verify)
+        self.assertIn("needs: [docs-and-harness, bundled-engine, e2e]", verify)
+        self.assertIn("github.event_name == 'push'", verify)
+        self.assertIn("github.ref == 'refs/heads/main'", verify)
+        self.assertIn("uses: ./.github/workflows/skill-release.yml", verify)
+        self.assertNotIn("secrets: inherit", verify)
+        self.assertIn("CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}", verify)
+        self.assertIn("SKILLS_HUB_AI_API_KEY: ${{ secrets.SKILLS_HUB_AI_API_KEY }}", verify)
+        self.assertIn("secrets:\n      CLAWHUB_TOKEN:\n        required: true", workflow)
+        self.assertIn("SKILLS_HUB_AI_API_KEY:\n        required: true", workflow)
+        self.assertIn("permissions:\n      contents: write", verify)
 
     def test_only_the_release_job_receives_write_contents_permission(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
