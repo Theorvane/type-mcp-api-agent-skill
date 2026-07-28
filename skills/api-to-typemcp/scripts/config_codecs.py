@@ -17,14 +17,15 @@ def render_codex_toml(source: str, spec: McpServerSpec) -> str:
     existing tables. An existing target table or malformed TOML is manual-only.
     """
     try:
-        tomllib.loads(source)
+        parsed = tomllib.loads(source)
     except tomllib.TOMLDecodeError as exc:
         raise UnsupportedConfigFormat("invalid TOML; refusing lossy rewrite") from exc
     key = spec.name.replace("-", "_")
     if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", key):
         raise UnsupportedConfigFormat("server name cannot become a safe TOML key")
     header = f"[mcp_servers.{key}]"
-    if header in source:
+    servers = parsed.get("mcp_servers", {})
+    if not isinstance(servers, dict) or key in servers:
         raise UnsupportedConfigFormat("target MCP table already exists")
     args = ", ".join(json.dumps(arg) for arg in spec.args)
     suffix = "" if not source or source.endswith("\n") else "\n"

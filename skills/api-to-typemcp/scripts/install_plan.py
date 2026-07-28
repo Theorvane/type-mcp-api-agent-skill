@@ -149,8 +149,6 @@ def write_portable_export(project: Path, spec: McpServerSpec) -> Path:
     directory = root / "agent-install"
     if directory.exists() and (directory.is_symlink() or not directory.is_dir()):
         raise InstallPlanError("portable export directory must not be a symlink or file")
-    if directory.is_symlink():
-        raise InstallPlanError("portable export directory must not be a symlink")
     directory.mkdir(exist_ok=True)
     output = directory / "mcpServers.json"
     if output.exists() and (output.is_symlink() or not output.is_file()):

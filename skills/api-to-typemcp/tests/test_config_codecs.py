@@ -21,6 +21,10 @@ class CodecTests(unittest.TestCase):
     def test_codex_toml_rejects_existing_target_table(self) -> None:
         source = "[mcp_servers.petstore_mcp]\ncommand = 'old'\n"
         with self.assertRaises(UnsupportedConfigFormat): render_codex_toml(source, self.spec)
+    def test_codex_toml_ignores_target_header_in_comment(self) -> None:
+        rendered = render_codex_toml("# [mcp_servers.petstore_mcp]\nmodel = 'x'\n", self.spec)
+        self.assertIn("[mcp_servers.petstore_mcp]", rendered)
+
     def test_jsonc_is_manual_export_only_without_preserving_codec(self) -> None:
         with self.assertRaises(UnsupportedConfigFormat):
             patch_jsonc('{\n // user comment\n "mcpServers": {}\n}', self.spec)

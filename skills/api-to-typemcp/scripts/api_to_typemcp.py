@@ -250,7 +250,7 @@ def _cmd_install_apply(args: argparse.Namespace) -> None:
         results = install_mcp.apply_native_plan(plan, spec)
     except install_mcp.InstallError as exc:
         _safe_error(str(exc))
-    _emit({"status": "installed", "plan_digest": plan.digest, "targets": [{"client_id": result.config_path.name, "config_path": str(result.config_path), "backup_path": str(result.backup_path), "status": result.status} for result in results]})
+    _emit({"status": "installed", "plan_digest": plan.digest, "targets": [{"client_id": result.client_id, "config_path": str(result.config_path), "backup_path": str(result.backup_path), "status": result.status} for result in results]})
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +306,6 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_install_plan = sub.add_parser("install-plan", help="Read-only agent detection and secret-free install preview.")
     add_install_context(p_install_plan)
-    p_install_plan.add_argument("--json", action="store_true", help="Emit the full plan JSON.")
 
     p_install_approve = sub.add_parser("install-approve", help="Issue a one-time receipt for an exact reviewed install plan.")
     p_install_approve.add_argument("--plan-digest", required=True, help="Exact digest emitted by install-plan.")

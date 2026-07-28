@@ -21,6 +21,7 @@ class InstallError(RuntimeError):
 
 @dataclass(frozen=True)
 class ApplyResult:
+    client_id: str
     config_path: Path
     backup_path: Path
     status: str
@@ -213,7 +214,7 @@ def _apply_target(target: InstallTarget, spec: McpServerSpec, *, json_target: bo
             raise InstallError("installation failed; target was restored") from exc
     finally:
         os.close(parent_fd)
-    return ApplyResult(path, target.backup_path, "verified")
+    return ApplyResult(target.client_id, path, target.backup_path, "verified")
 
 
 def _apply_json_target(target: InstallTarget, spec: McpServerSpec, *, verifier: Callable[[], bool] | None = None) -> ApplyResult:

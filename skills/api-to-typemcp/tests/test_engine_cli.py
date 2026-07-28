@@ -65,6 +65,8 @@ class EngineCliTests(unittest.TestCase):
             self.assertEqual(approved.returncode, 0, approved.stderr)
             applied = subprocess.run([sys.executable, str(ENTRYPOINT), "install-apply", *common, "--confirm-plan-digest", plan["plan_digest"]], text=True, capture_output=True, env=env, check=False)
             self.assertEqual(applied.returncode, 0, applied.stderr)
+            applied_payload = json.loads(applied.stdout)
+            self.assertEqual(applied_payload["targets"][0]["client_id"], "cursor")
             self.assertIn("petstore-mcp", json.loads(config.read_text())["mcpServers"])
 
     def test_swagger_ui_cli_rejects_oversized_file_before_reading(self) -> None:
