@@ -387,7 +387,7 @@ class SkillReleaseTests(unittest.TestCase):
         self.assertIn('json.loads(os.environ["CLAW_HUB_PUBLICATION"])', workflow)
         self.assertIn('payload.get("status") != "published"', workflow)
         self.assertIn('payload.get("publicationStatus") != "published"', workflow)
-        self.assertIn('payload.get("latestVersion") != expected_version', workflow)
+        self.assertIn('payload.get("version") != expected_version', workflow)
         self.assertIn("ClawHub public confirmation failed", workflow)
 
 

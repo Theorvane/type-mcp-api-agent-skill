@@ -209,13 +209,13 @@ jobs:
           if (
               payload.get("status") != "published"
               or payload.get("publicationStatus") != "published"
-              or payload.get("latestVersion") != expected_version
+              or payload.get("version") != expected_version
           ):
               raise SystemExit(
                   "ClawHub public confirmation failed: "
                   f"status={payload.get('status')!r}, "
                   f"publicationStatus={payload.get('publicationStatus')!r}, "
-                  f"latestVersion={payload.get('latestVersion')!r}, "
+                  f"version={payload.get('version')!r}, "
                   f"expected={expected_version!r}."
               )
           PY
