@@ -125,6 +125,23 @@ class RenderTests(unittest.TestCase):
         self.assertIn("*", policy_ts)
 
     # ------------------------------------------------------------------
+    # api-client.ts
+    # ------------------------------------------------------------------
+
+    def test_generated_api_client_preserves_base_path_for_leading_slash_paths(self) -> None:
+        out = self._generate_project()
+        api_client = (out / "src" / "api-client.ts").read_text()
+
+        self.assertIn(
+            'const normalizedPath = path.startsWith("/") ? path.slice(1) : path;',
+            api_client,
+        )
+        self.assertIn(
+            'const url = new URL(normalizedPath, this.baseUrl + "/");',
+            api_client,
+        )
+
+    # ------------------------------------------------------------------
     # .env.example
     # ------------------------------------------------------------------
 
