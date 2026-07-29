@@ -16,17 +16,17 @@
 
 ## hermes
 
-**Official reference:** https://hermes-agent.nousresearch.com/docs/reference/cli-commands
-**Retrieved:** 2026-07-28
+**Official reference:** https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp
+**Retrieved:** 2026-07-29
 
-Preferred path: `hermes mcp add`, `hermes mcp list`, and `hermes mcp test`. The plan carries only absolute `node`, generated `dist/index.js`, canonical cwd, and environment-variable names. If the CLI cannot create the selected scope, return portable export; never edit Hermes files directly.
+Native registration uses only the documented `hermes mcp add <name> --command node --args <absolute-entry>` CLI path. The reviewed plan records the CLI-managed candidate path for operator visibility but the installer never reads or edits it directly. After registration, it runs `hermes mcp test <name>`; any non-zero result triggers `hermes mcp remove <name>` as compensating rollback. Hermes CLI currently exposes no cwd flag, so the generated absolute `dist/index.js` entrypoint is used and the plan reports the canonical project cwd for review. Environment variable values are never read or passed; users provide required values through their Hermes execution environment.
 
 ## claude-code
 
 **Official reference:** https://docs.anthropic.com/en/docs/claude-code/mcp
-**Retrieved:** 2026-07-28
+**Retrieved:** 2026-07-29
 
-Use the documented MCP add/list/remove command path and display selected scope. If the installed CLI lacks a safe documented add path, return portable export; never guess a config path or interpolate credentials.
+Native registration uses the documented stdio form `claude mcp add --transport stdio <name> -- node <absolute-entry>`, where `--` separates Claude Code options from the server command. The installer never reads or edits Claude settings directly. It verifies registration using `claude mcp list` and requires the named server in successful output; a failed or absent discovery triggers `claude mcp remove <name>` as compensating rollback. Claude Code’s documented add form has no cwd argument, so the generated absolute entrypoint is used and the canonical project cwd remains plan-visible only. Environment variable values are never read or passed; users provide required values through their Claude Code execution environment.
 
 ## codex
 
