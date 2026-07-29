@@ -89,8 +89,19 @@ def _fingerprint(path: Path, *, root: Path) -> str:
     return "sha256:" + sha256(payload).hexdigest()
 
 
+_CLI_TARGETS = {"hermes", "claude-code"}
+
+
 def _target_path(home: Path, client: str) -> Path:
-    mapping = {"codex": home / ".codex/config.toml", "cursor": home / ".cursor/mcp.json", "vscode-copilot": home / ".config/Code/User/mcp.json", "gemini-cli": home / ".gemini/settings.json", "opencode": home / ".config/opencode/opencode.json"}
+    mapping = {
+        "hermes": home / ".hermes/config.yaml",
+        "claude-code": home / ".claude.json",
+        "codex": home / ".codex/config.toml",
+        "cursor": home / ".cursor/mcp.json",
+        "vscode-copilot": home / ".config/Code/User/mcp.json",
+        "gemini-cli": home / ".gemini/settings.json",
+        "opencode": home / ".config/opencode/opencode.json",
+    }
     if client not in mapping:
         raise InstallPlanError(f"unsupported native plan target: {client}")
     return mapping[client]
@@ -133,6 +144,16 @@ def build_plan(spec: McpServerSpec, *, selected: tuple[str, ...], home: Path) ->
     targets: list[InstallTarget] = []
     for client in selected:
         path = _target_path(root, client)
+        if client in _CLI_TARGETS:
+            targets.append(InstallTarget(
+                client,
+                path,
+                "cli-add",
+                "cli-managed",
+                path.with_name(path.name + ".api-to-typemcp.bak"),
+                "hermes-mcp-test" if client == "hermes" else "claude-mcp-list-connected",
+            ))
+            continue
         fingerprint = _fingerprint(path, root=root)
         if not path.is_file():
             raise InstallPlanError("native installation requires an existing detected configuration; use portable export instead")

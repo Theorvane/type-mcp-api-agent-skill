@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import stat
+import subprocess
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -225,6 +226,63 @@ def _apply_codex_target(target: InstallTarget, spec: McpServerSpec) -> ApplyResu
     return _apply_target(target, spec, json_target=False)
 
 
+def _default_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(command, text=True, capture_output=True, timeout=20, check=False)
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise InstallError(f"official MCP CLI is unavailable: {command[0]}") from exc
+
+
+def _cli_commands(client_id: str, spec: McpServerSpec) -> tuple[list[str], list[str], list[str]]:
+    entry = spec.args[0]
+    if client_id == "hermes":
+        return (
+            ["hermes", "mcp", "add", spec.name, "--command", spec.command, "--args", entry],
+            ["hermes", "mcp", "test", spec.name],
+            ["hermes", "mcp", "remove", spec.name],
+        )
+    if client_id == "claude-code":
+        return (
+            ["claude", "mcp", "add", "--transport", "stdio", spec.name, "--", spec.command, entry],
+            ["claude", "mcp", "list"],
+            ["claude", "mcp", "remove", spec.name],
+        )
+    raise InstallError("unsupported official CLI target")
+
+
+def _run_checked(runner: Callable[[list[str]], subprocess.CompletedProcess[str]], command: list[str], error: str) -> subprocess.CompletedProcess[str]:
+    result = runner(command)
+    if result.returncode != 0:
+        raise InstallError(error)
+    return result
+
+
+def _apply_cli_target(target: InstallTarget, spec: McpServerSpec, runner: Callable[[list[str]], subprocess.CompletedProcess[str]]) -> ApplyResult:
+    add, verify, remove = _cli_commands(target.client_id, spec)
+    label = "Hermes" if target.client_id == "hermes" else "Claude Code"
+    _run_checked(runner, add, f"{label} MCP registration failed")
+    try:
+        verified = _run_checked(runner, verify, f"{label} MCP verification failed")
+        if target.client_id == "claude-code":
+            connected = any(spec.name in line and "Connected" in line for line in verified.stdout.splitlines())
+            if not connected:
+                raise InstallError("Claude Code MCP verification failed")
+    except Exception as exc:
+        try:
+            _run_checked(runner, remove, f"{label} MCP rollback failed")
+        except InstallError as rollback_error:
+            raise InstallError(f"{label} MCP verification failed and rollback failed") from rollback_error
+        if isinstance(exc, InstallError):
+            raise
+        raise InstallError(f"{label} MCP verification failed") from exc
+    return ApplyResult(target.client_id, target.config_path, target.backup_path, "verified")
+
+
+def _remove_cli_target(target: InstallTarget, spec: McpServerSpec, runner: Callable[[list[str]], subprocess.CompletedProcess[str]]) -> None:
+    _add, _verify, remove = _cli_commands(target.client_id, spec)
+    _run_checked(runner, remove, f"{target.client_id} MCP rollback failed")
+
+
 def _consume_plan(plan: InstallPlan, spec: McpServerSpec, allowed: set[str]) -> None:
     if plan.server != spec:
         raise InstallError("server specification is not bound to the supplied plan")
@@ -242,19 +300,29 @@ def _apply_batch(
     *,
     allowed: set[str],
     verifiers: dict[str, Callable[[], bool]] | None = None,
+    runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> tuple[ApplyResult, ...]:
     _consume_plan(plan, spec, allowed)
     checks = verifiers or {}
+    command_runner = runner or _default_runner
     completed: list[tuple[InstallTarget, ApplyResult]] = []
     try:
         for target in plan.targets:
-            result = _apply_codex_target(target, spec) if target.client_id == "codex" else _apply_json_target(target, spec, verifier=checks.get(target.client_id))
+            if target.action == "cli-add":
+                result = _apply_cli_target(target, spec, command_runner)
+            elif target.client_id == "codex":
+                result = _apply_codex_target(target, spec)
+            else:
+                result = _apply_json_target(target, spec, verifier=checks.get(target.client_id))
             completed.append((target, result))
     except Exception as exc:
         rollback_failures: list[Exception] = []
         for completed_target, _result in reversed(completed):
             try:
-                _restore_target(completed_target)
+                if completed_target.action == "cli-add":
+                    _remove_cli_target(completed_target, spec, command_runner)
+                else:
+                    _restore_target(completed_target)
             except Exception as rollback_error:
                 rollback_failures.append(rollback_error)
         if rollback_failures:
@@ -265,9 +333,21 @@ def _apply_batch(
     return tuple(result for _target, result in completed)
 
 
-def apply_native_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:
+def apply_native_plan(
+    plan: InstallPlan,
+    spec: McpServerSpec,
+    *,
+    verifiers: dict[str, Callable[[], bool]] | None = None,
+    runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
+) -> tuple[ApplyResult, ...]:
     """Consume one receipt and atomically apply supported native adapters."""
-    return _apply_batch(plan, spec, allowed={"codex", "cursor", "vscode-copilot", "gemini-cli", "opencode"}, verifiers=verifiers)
+    return _apply_batch(
+        plan,
+        spec,
+        allowed={"hermes", "claude-code", "codex", "cursor", "vscode-copilot", "gemini-cli", "opencode"},
+        verifiers=verifiers,
+        runner=runner,
+    )
 
 
 def apply_json_plan(plan: InstallPlan, spec: McpServerSpec, *, verifiers: dict[str, Callable[[], bool]] | None = None) -> tuple[ApplyResult, ...]:

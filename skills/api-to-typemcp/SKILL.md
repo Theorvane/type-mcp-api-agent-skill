@@ -88,7 +88,7 @@ Swagger UI discovery is performed by `inspect` in-memory and returns only an exp
 
 ## Optional agent installation workflow
 
-Only use this after generated-project verification succeeds. Read-only discovery covers Hermes, Claude Code, Codex, Cursor, VS Code/Copilot, Gemini CLI, and OpenCode. This release has verified native config adapters for **Codex, Cursor, VS Code/Copilot, Gemini CLI, and OpenCode**. Hermes and Claude Code remain portable-export-only until their CLI registration and scope verification have their own tested adapters; the skill never guesses or directly edits their configuration files.
+Only use this after generated-project verification succeeds. Read-only discovery covers Hermes, Claude Code, Codex, Cursor, VS Code/Copilot, Gemini CLI, and OpenCode. This release has verified native config adapters for **Codex, Cursor, VS Code/Copilot, Gemini CLI, and OpenCode**, plus official CLI adapters for **Hermes** (`hermes mcp add` then `hermes mcp test`) and **Claude Code** (`claude mcp add --transport stdio` then `claude mcp list`). Hermes and Claude Code configuration files are never guessed or edited directly. If either CLI is missing or its add/verification action fails, the adapter removes a just-added server when possible and reports the target as failed; use portable export instead.
 
 ```bash
 # 1. The assistant asks: "프로젝트만 생성할까요, 아니면 생성 후 에이전트에 탑재할까요?"
