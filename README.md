@@ -19,7 +19,7 @@ Tasks 1–7 of embedded-engine delivery are implemented on `dev`: structured Ope
 
 - [ClawHub (`@sjungwon03/api-to-typemcp`)](https://clawhub.ai/sjungwon03/api-to-typemcp)
 - [skills-hub.ai (`api-to-typemcp`)](https://skills-hub.ai/skills/api-to-typemcp)
-- [GitHub Release v0.2.1](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.2.1)
+- [GitHub Release v0.2.2](https://github.com/Theorvane/type-mcp-api-agent-skill/releases/tag/v0.2.2)
 
 ## Layout
 
