@@ -12,7 +12,10 @@ flowchart LR
   Approval --> Render[Controlled TypeScript renderer]
   Render --> Project[Standalone TypeMCP project]
   Project --> Verify[Contained verification]
-  Verify --> Publish{Final confirmation}
+  Verify --> InstallChoice{Project only or agent install?}
+  InstallChoice --> Plan[Read-only detection + secret-free plan]
+  Plan --> InstallConfirm{Final installation confirmation}
+  InstallConfirm --> Publish{Final publication confirmation}
 ```
 
 The released `skills/api-to-typemcp/` artifact is the generator delivery unit. Its **bundled skill engine** owns deterministic parsing, normalization, receipt state, policy, rendering, and static verification; it is not a separately released executable. Generated projects use the published `@theorvane/type-mcp` npm package, never a copied implementation or adjacent checkout.

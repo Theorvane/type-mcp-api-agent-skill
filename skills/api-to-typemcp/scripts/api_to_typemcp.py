@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -26,6 +27,9 @@ import intake  # noqa: E402
 import structured_specs  # noqa: E402
 import manifest as manifest_mod  # noqa: E402
 import approval  # noqa: E402
+import agent_clients  # noqa: E402
+import install_mcp  # noqa: E402
+import install_plan  # noqa: E402
 import render  # noqa: E402
 from swagger_ui import MAX_SWAGGER_UI_BYTES, SwaggerUIError, extract_spec_reference  # noqa: E402
 
@@ -202,6 +206,52 @@ def _cmd_generate(args: argparse.Namespace) -> None:
         "file_count": len(written),
     })
 
+def _install_context(args: argparse.Namespace) -> tuple[agent_clients.McpServerSpec, install_plan.InstallPlan]:
+    project = Path(args.project)
+    home = Path(args.home).expanduser()
+    selected = tuple(item.strip() for item in args.targets.split(",") if item.strip())
+    spec = agent_clients.server_spec_from_project(project, server_name=args.server_name)
+    detected = agent_clients.detect_clients(home=home, project=project, which=shutil.which)
+    detected_ids = {client.id for client in detected}
+    unknown = sorted(set(selected) - detected_ids)
+    if unknown:
+        _safe_error("requested agent target is not detected: " + ", ".join(unknown))
+    try:
+        plan = install_plan.build_plan(spec, selected=selected, home=home)
+    except (agent_clients.AgentClientError, install_plan.InstallPlanError) as exc:
+        _safe_error(str(exc))
+    return spec, plan
+
+
+def _cmd_install_plan(args: argparse.Namespace) -> None:
+    _spec, plan = _install_context(args)
+    _emit({"status": "review-required", "mode_prompt": "project-only-or-install", "plan_digest": plan.digest, "plan": plan.to_public_dict()})
+
+
+def _cmd_install_approve(args: argparse.Namespace) -> None:
+    receipt = approval.issue_receipt(args.plan_digest)
+    _emit({"status": "install-approved", "plan_digest": args.plan_digest, "receipt": str(receipt)})
+
+
+def _cmd_install_export(args: argparse.Namespace) -> None:
+    try:
+        spec = agent_clients.server_spec_from_project(Path(args.project), server_name=args.server_name)
+        output = install_plan.write_portable_export(Path(args.project), spec)
+    except (agent_clients.AgentClientError, install_plan.InstallPlanError) as exc:
+        _safe_error(str(exc))
+    _emit({"status": "portable-exported", "output": str(output), "mutated_agent_config": False})
+
+
+def _cmd_install_apply(args: argparse.Namespace) -> None:
+    spec, plan = _install_context(args)
+    if args.confirm_plan_digest != plan.digest:
+        _safe_error("confirmation digest does not match the current installation plan")
+    try:
+        results = install_mcp.apply_native_plan(plan, spec)
+    except install_mcp.InstallError as exc:
+        _safe_error(str(exc))
+    _emit({"status": "installed", "plan_digest": plan.digest, "targets": [{"client_id": result.client_id, "config_path": str(result.config_path), "backup_path": str(result.backup_path), "status": result.status} for result in results]})
+
 
 # ---------------------------------------------------------------------------
 # CLI wiring
@@ -248,6 +298,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Explicit confirmation of the current manifest digest.",
     )
 
+    def add_install_context(command: argparse.ArgumentParser) -> None:
+        command.add_argument("--project", required=True, help="Verified generated project directory.")
+        command.add_argument("--home", default=str(Path.home()), help="Explicit agent-home directory; defaults to the current home.")
+        command.add_argument("--targets", required=True, help="Comma-separated detected native targets.")
+        command.add_argument("--server-name", default="api-mcp", help="Safe MCP server name for this project.")
+
+    p_install_plan = sub.add_parser("install-plan", help="Read-only agent detection and secret-free install preview.")
+    add_install_context(p_install_plan)
+
+    p_install_approve = sub.add_parser("install-approve", help="Issue a one-time receipt for an exact reviewed install plan.")
+    p_install_approve.add_argument("--plan-digest", required=True, help="Exact digest emitted by install-plan.")
+
+    p_install_export = sub.add_parser("install-export", help="Write portable mcpServers JSON without changing agent settings.")
+    p_install_export.add_argument("--project", required=True, help="Verified generated project directory.")
+    p_install_export.add_argument("--server-name", default="api-mcp", help="Safe MCP server name for this project.")
+
+    p_install_apply = sub.add_parser("install-apply", help="Apply an approved unchanged JSON-native install plan.")
+    add_install_context(p_install_apply)
+    p_install_apply.add_argument("--confirm-plan-digest", required=True, help="Exact digest emitted by install-plan and approved separately.")
+
     return parser
 
 
@@ -264,6 +334,14 @@ def main(argv: list[str] | None = None) -> None:
             _cmd_approve(args)
         elif args.command == "generate":
             _cmd_generate(args)
+        elif args.command == "install-plan":
+            _cmd_install_plan(args)
+        elif args.command == "install-approve":
+            _cmd_install_approve(args)
+        elif args.command == "install-export":
+            _cmd_install_export(args)
+        elif args.command == "install-apply":
+            _cmd_install_apply(args)
     except intake.IntakeError as exc:
         _safe_error(str(exc))
     except structured_specs.StructuredSpecError as exc:

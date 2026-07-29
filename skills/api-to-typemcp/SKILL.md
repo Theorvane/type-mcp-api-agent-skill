@@ -1,7 +1,7 @@
 ---
 name: api-to-typemcp
 description: Use when turning supplied API sources into a safe TypeMCP project.
-version: 0.2.1
+version: 0.2.2
 category: integration
 license: MIT
 metadata:
@@ -83,7 +83,34 @@ Swagger UI discovery is performed by `inspect` in-memory and returns only an exp
 3. **Output gate.** The output directory must already exist and be empty unless `--replace` is explicitly supplied. Symlinks and `..` traversal are rejected.
 4. **Runtime policy.** `GET`/`HEAD`/`OPTIONS` are read operations. `POST`/`PUT`/`PATCH`/`DELETE` are protected writes and require exact known IDs in `TYPE_MCP_ALLOW_PROTECTED_OPERATIONS` **before URL, query, headers, body, authentication, or dispatch**. Unknown methods deny.
 5. **Containment.** Verify generated projects in a scrubbed temporary workspace, after package inspection and with a generated lockfile. Use `npm ci --ignore-scripts` with inherited proxy settings disabled, then typecheck, test, build, and run a local MCP stdio smoke test. Use a container, VM, or equivalent host sandbox when the project or dependency graph is untrusted.
-6. **Publication.** **Immediately before GitHub publication**, record owner/org, repository name, visibility, and source branch. Resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Ask for explicit user confirmation before the publication action.
+6. **Agent installation (optional).** After a verified project is generated, ask whether the user wants **project only** or **project + agent installation**. Project-only is the default. For installation, detect clients read-only, present the detected targets and exact config paths/command/args/cwd/env *names* plus backup paths, and require a separate final confirmation bound to the reviewed installation plan. Never read `.env`, copy secret values, silently replace a server name, or mutate an undetected/unsupported client; provide a portable `mcpServers.json` export instead.
+7. **Publication.** **Immediately before GitHub publication**, record owner/org, repository name, visibility, and source branch. Resolve the actual checked-out/ref-to-publish branch and stop unless it exactly equals the recorded source branch. Ask for explicit user confirmation before the publication action.
+
+## Optional agent installation workflow
+
+Only use this after generated-project verification succeeds. Read-only discovery covers Hermes, Claude Code, Codex, Cursor, VS Code/Copilot, Gemini CLI, and OpenCode. This release has verified native config adapters for **Codex, Cursor, VS Code/Copilot, Gemini CLI, and OpenCode**, plus official CLI adapters for **Hermes** (`hermes mcp add` then `hermes mcp test`) and **Claude Code** (`claude mcp add --transport stdio` then `claude mcp list`). Hermes and Claude Code configuration files are never guessed or edited directly. If either CLI is missing or its add/verification action fails, the adapter removes a just-added server when possible and reports the target as failed; use portable export instead.
+
+```bash
+# 1. The assistant asks: "프로젝트만 생성할까요, 아니면 생성 후 에이전트에 탑재할까요?"
+# 2. For install, inspect and show a secret-free plan before any config write.
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-plan \
+  --project "$OUTPUT" --targets "cursor,gemini-cli"
+
+# 3. Review the preview, then explicitly issue the plan-bound one-time confirmation.
+PLAN_DIGEST="...shown by install-plan..."
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-approve --plan-digest "$PLAN_DIGEST"
+
+# 4. Apply only the unchanged approved plan. Native registration is fail-closed
+#    unless the selected client already has a detected regular config file. Each
+#    target gets a 0600 backup; a later target failure restores earlier targets,
+#    and every write is reread/parsed before success is reported.
+python3 "$SKILL_DIR/scripts/api_to_typemcp.py" install-apply \
+  --project "$OUTPUT" --targets "cursor,gemini-cli" --confirm-plan-digest "$PLAN_DIGEST"
+```
+
+For no-write portability, use `install-export --project "$OUTPUT"`; it writes only
+`$OUTPUT/agent-install/mcpServers.json`, never an agent configuration. Preview and
+receipts expose `env_names` only—never `.env` content or credential values.
 
 ## Runtime compatibility
 
