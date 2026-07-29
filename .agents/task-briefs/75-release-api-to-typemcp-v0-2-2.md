@@ -40,8 +40,8 @@ Publish the reviewed Hermes and Claude Code MCP-registration capability as publi
 | Stage | Command | Expected/observed result |
 | --- | --- | --- |
 | Red | `python3 .agents/scripts/test_skill_release.py` | Failed as expected after the contract expected `0.2.2` while `SKILL.md` remained `0.2.1`. |
-| Green | `python3 .agents/scripts/test_skill_release.py` | Passed: 15 tests after the frontmatter and release-publisher fixture version were updated to `0.2.2`. |
-| Regression | repository verification baseline plus generated-project E2E | Passed: 140 engine tests, 8 documentation tests, 3 workspace tests, 15 release-contract tests, documentation validation, Python compile, and `git diff --check`. |
+| Green | `python3 .agents/scripts/test_skill_release.py` | Passed: 16 tests after the frontmatter, public README release link, and release-publisher fixture version were updated to `0.2.2`. |
+| Regression | repository verification baseline plus generated-project E2E | Passed: 140 engine tests, 8 documentation tests, 3 workspace tests, 16 release-contract tests, documentation validation, Python compile, and `git diff --check`. |
 
 ## Verification
 

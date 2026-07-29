@@ -33,6 +33,15 @@ class SkillReleaseTests(unittest.TestCase):
         assert match is not None
         self.assertRegex(match.group(1), SEMVER)
 
+    def test_readme_release_link_matches_the_skill_version(self) -> None:
+        skill = SKILL.read_text(encoding="utf-8")
+        version = re.search(r"^version:\s*([^\s#]+)\s*$", skill, re.MULTILINE)
+        self.assertIsNotNone(version, "SKILL.md must declare a release version")
+        assert version is not None
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        expected = f"releases/tag/v{version.group(1)}"
+        self.assertIn(expected, readme, "README GitHub Release link must match SKILL.md version")
+
     def test_version_extraction_step_executes_and_writes_outputs(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
         match = re.search(
