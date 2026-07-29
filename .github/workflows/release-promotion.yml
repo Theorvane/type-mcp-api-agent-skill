@@ -13,5 +13,19 @@ jobs:
     env:
       HEAD_REF: ${{ github.head_ref }}
     steps:
-      - name: Require the dev integration branch
-        run: test "$HEAD_REF" = "dev"
+      - name: Require dev or a strictly named release candidate
+        run: |
+          [[ "$HEAD_REF" = "dev" || "$HEAD_REF" =~ ^release/[1-9][0-9]*-[a-z0-9]+(-[a-z0-9]+)*$ ]]
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Require release-lineage ancestry
+        run: |
+          git fetch --no-tags origin main dev
+          git merge-base --is-ancestor origin/main HEAD
+          git merge-base --is-ancestor origin/dev HEAD
+          if [[ "$HEAD_REF" = release/* ]]; then
+            test "$(git rev-list --parents -n 1 HEAD | awk '{print NF - 1}')" -eq 2
+          fi
