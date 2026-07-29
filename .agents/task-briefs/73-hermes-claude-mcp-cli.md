@@ -45,7 +45,9 @@ A user who explicitly selects Hermes or Claude Code after generated-project veri
 | --- | --- | --- |
 | Red | `python3 -m unittest skills/api-to-typemcp/tests/test_cli_agent_adapters.py -v` | Failed: Hermes and Claude Code were rejected as unsupported native plan targets. |
 | Green | `python3 -m unittest skills/api-to-typemcp/tests/test_cli_agent_adapters.py -v` | Passed: 4 tests, including receipt gating, official Hermes/Claude CLI arguments, unhealthy Claude discovery rollback, and failed Hermes verification rollback. |
-| Regression | `python3 -m unittest discover -s skills/api-to-typemcp/tests -p 'test_*.py' -q` | Passed: 137 tests. |
+| Re-review red | `python3 -m unittest skills/api-to-typemcp/tests/test_cli_agent_adapters.py -v` | Failed as expected: 3 new regressions proved Claude name-prefix false positives, missing add-failure rollback, and trailing MCP-argument loss. |
+| Re-review green | `python3 -m unittest skills/api-to-typemcp/tests/test_cli_agent_adapters.py -v` | Passed: 7 tests after exact Claude name matching, add-failure compensation, and complete argument forwarding. |
+| Regression | `python3 -m unittest discover -s skills/api-to-typemcp/tests -p 'test_*.py' -q` | Passed: 140 tests. |
 
 ## Verification
 

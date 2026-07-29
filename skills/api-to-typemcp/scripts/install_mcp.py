@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 import stat
 import subprocess
@@ -234,16 +235,15 @@ def _default_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def _cli_commands(client_id: str, spec: McpServerSpec) -> tuple[list[str], list[str], list[str]]:
-    entry = spec.args[0]
     if client_id == "hermes":
         return (
-            ["hermes", "mcp", "add", spec.name, "--command", spec.command, "--args", entry],
+            ["hermes", "mcp", "add", spec.name, "--command", spec.command, "--args", *spec.args],
             ["hermes", "mcp", "test", spec.name],
             ["hermes", "mcp", "remove", spec.name],
         )
     if client_id == "claude-code":
         return (
-            ["claude", "mcp", "add", "--transport", "stdio", spec.name, "--", spec.command, entry],
+            ["claude", "mcp", "add", "--transport", "stdio", spec.name, "--", spec.command, *spec.args],
             ["claude", "mcp", "list"],
             ["claude", "mcp", "remove", spec.name],
         )
@@ -260,21 +260,22 @@ def _run_checked(runner: Callable[[list[str]], subprocess.CompletedProcess[str]]
 def _apply_cli_target(target: InstallTarget, spec: McpServerSpec, runner: Callable[[list[str]], subprocess.CompletedProcess[str]]) -> ApplyResult:
     add, verify, remove = _cli_commands(target.client_id, spec)
     label = "Hermes" if target.client_id == "hermes" else "Claude Code"
-    _run_checked(runner, add, f"{label} MCP registration failed")
     try:
+        _run_checked(runner, add, f"{label} MCP registration failed")
         verified = _run_checked(runner, verify, f"{label} MCP verification failed")
         if target.client_id == "claude-code":
-            connected = any(spec.name in line and "Connected" in line for line in verified.stdout.splitlines())
+            server_line = re.compile(rf"^\s*{re.escape(spec.name)}\s*:")
+            connected = any(server_line.match(line) and "Connected" in line for line in verified.stdout.splitlines())
             if not connected:
                 raise InstallError("Claude Code MCP verification failed")
     except Exception as exc:
         try:
             _run_checked(runner, remove, f"{label} MCP rollback failed")
         except InstallError as rollback_error:
-            raise InstallError(f"{label} MCP verification failed and rollback failed") from rollback_error
+            raise InstallError(f"{label} MCP operation failed and rollback failed") from rollback_error
         if isinstance(exc, InstallError):
             raise
-        raise InstallError(f"{label} MCP verification failed") from exc
+        raise InstallError(f"{label} MCP operation failed") from exc
     return ApplyResult(target.client_id, target.config_path, target.backup_path, "verified")
 
 

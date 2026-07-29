@@ -98,6 +98,65 @@ class CliAgentAdapterTests(unittest.TestCase):
             apply_native_plan(plan, self.spec, runner=runner)
         self.assertEqual(calls[-1], ["claude", "mcp", "remove", "petstore-mcp"])
 
+    def test_claude_code_does_not_accept_a_different_server_name_as_connected(self) -> None:
+        plan = build_plan(self.spec, selected=("claude-code",), home=self.home)
+        calls: list[list[str]] = []
+
+        def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            calls.append(command)
+            stdout = "petstore-mcp-old: ✔ Connected" if command[-1] == "list" else "Added petstore-mcp"
+            return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr="")
+
+        issue_install_receipt(plan)
+        with self.assertRaisesRegex(InstallError, "Claude Code MCP verification failed"):
+            apply_native_plan(plan, self.spec, runner=runner)
+        self.assertEqual(calls[-1], ["claude", "mcp", "remove", "petstore-mcp"])
+
+    def test_hermes_add_failure_attempts_compensating_remove(self) -> None:
+        plan = build_plan(self.spec, selected=("hermes",), home=self.home)
+        calls: list[list[str]] = []
+
+        def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            calls.append(command)
+            return subprocess.CompletedProcess(
+                command,
+                1 if command[2] == "add" else 0,
+                stdout="",
+                stderr="write may have occurred",
+            )
+
+        issue_install_receipt(plan)
+        with self.assertRaisesRegex(InstallError, "Hermes MCP registration failed"):
+            apply_native_plan(plan, self.spec, runner=runner)
+        self.assertEqual(calls, [
+            ["hermes", "mcp", "add", "petstore-mcp", "--command", "node", "--args", "/safe/project/dist/index.js"],
+            ["hermes", "mcp", "remove", "petstore-mcp"],
+        ])
+
+    def test_official_cli_registration_preserves_all_server_arguments(self) -> None:
+        spec = McpServerSpec(
+            "petstore-mcp",
+            "node",
+            ("/safe/project/dist/index.js", "--enable-source-maps"),
+            Path("/safe/project"),
+        )
+        plan = build_plan(spec, selected=("hermes", "claude-code"), home=self.home)
+        calls: list[list[str]] = []
+
+        def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            calls.append(command)
+            stdout = "petstore-mcp: ✔ Connected" if command[-1] == "list" else "ok"
+            return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr="")
+
+        issue_install_receipt(plan)
+        apply_native_plan(plan, spec, runner=runner)
+        self.assertEqual(calls, [
+            ["hermes", "mcp", "add", "petstore-mcp", "--command", "node", "--args", "/safe/project/dist/index.js", "--enable-source-maps"],
+            ["hermes", "mcp", "test", "petstore-mcp"],
+            ["claude", "mcp", "add", "--transport", "stdio", "petstore-mcp", "--", "node", "/safe/project/dist/index.js", "--enable-source-maps"],
+            ["claude", "mcp", "list"],
+        ])
+
     def test_failed_cli_verification_reports_failure_without_direct_config_mutation(self) -> None:
         plan = build_plan(self.spec, selected=("hermes",), home=self.home)
 
